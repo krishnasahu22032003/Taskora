@@ -98,4 +98,20 @@ export async function UsersignIn(req: Request, res: Response) {
   }
 }
 
+// get current user function
+
+export async function GetCurrentUser(req:Request,res:Response){
+try{
+    
+    if(!req.user){
+        return res.status(400).json({success:false,Message:"Unauthorized"})
+    }
+    const user = await UserModel.findById(req.user.id).select("username email")
+    res.json({success:true,user})
+}
+catch(err){
+    console.log(err)
+    res.status(500).json({success:false,Message:"server error"})
+}
+}
 
