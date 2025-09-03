@@ -1,9 +1,12 @@
 import { UserModel } from "../config/db.js";
-import  {z} from "zod"
+import  {success, z} from "zod"
 import   jwt  from "jsonwebtoken";
 import JWT_USER_SECRET from "../config/config.js";
 import type { Request,Response } from "express";
 import bcrypt from "bcrypt"
+
+// signin logic
+
 export async function UserSingUp(req:Request, res:Response){
     const requiredbody = z.object({
         username:z.string(),
@@ -45,27 +48,54 @@ export async function UserSingUp(req:Request, res:Response){
         })
        }
 } 
+// sing up logic
+export async function UsersignIn(req: Request, res: Response) {
+  try {
+    const { email, password } = req.body;
 
-export async function UsersignIn(req:Request,res:Response){
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and password are required" });
+    }
 
-const {email,password} = req.body;
-const user = await UserModel.findOne({email});
-if(!user){
-   return res.status(403).json({success:false,Message:"User does not exists please signUp first"})
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return res.status(403).json({
+        success: false,
+        message: "User does not exist, please sign up first",
+      });
+    }
+
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Incorrect credentials" });
+    }
+
+    const token = jwt.sign({ id: user._id }, JWT_USER_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Signin successful",
+      user: { id: user._id, username: user.username, email: user.email },
+    });
+  } catch (error) {
+    console.error("Signin error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error, please try again later" });
+  }
 }
-const ok =await bcrypt.compare(password,user.password);
-  if (!ok) return res.status(403).json({ message: "Incorrect credentials" });
-const token = jwt.sign({id:user._id},JWT_USER_SECRET,{expiresIn:"7d"})
-res.cookie("auth_token", token, {
-  httpOnly: true, 
-  secure: process.env.NODE_ENV === "production", 
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", 
-  maxAge: 7 * 24 * 60 * 60 * 1000, 
-});
 
-return res.status(200).json({
-  success: true,
-  message: "Signin successful",
-  user: { id: user._id, username: user.username, email: user.email },
-});
-}
+
