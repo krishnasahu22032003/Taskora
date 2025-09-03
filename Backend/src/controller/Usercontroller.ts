@@ -99,19 +99,23 @@ export async function UsersignIn(req: Request, res: Response) {
 }
 
 // get current user function
-
-export async function GetCurrentUser(req:Request,res:Response){
-try{
-    
-    if(!req.user){
-        return res.status(400).json({success:false,Message:"Unauthorized"})
+export async function GetCurrentUser(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, Message: "Unauthorized" });
     }
-    const user = await UserModel.findById(req.user.id).select("username email")
-    res.json({success:true,user})
+
+    const user = await UserModel.findById(req.user.id).select("username email");
+
+    if (!user) {
+      return res.status(404).json({ success: false, Message: "User not found" });
+    }
+
+    return res.json({ success: true, user });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, Message: "Server error" });
+  }
 }
-catch(err){
-    console.log(err)
-    res.status(500).json({success:false,Message:"server error"})
-}
-}
+
 
