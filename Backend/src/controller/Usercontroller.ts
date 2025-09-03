@@ -56,4 +56,14 @@ if(!user){
 const ok =await bcrypt.compare(password,user.password);
   if (!ok) return res.status(403).json({ message: "Incorrect credentials" });
 const token = jwt.sign({id:user._id},JWT_USER_SECRET,{expiresIn:"7d"})
+   return res.status(200).json({
+    success: true,
+    message: "Signin successful",
+    token,
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    },
+  });
 }
