@@ -1,4 +1,5 @@
 import express from "express"
+import { UserModel } from "./config/db.js"
 const app =express()
 const port = 5000
 

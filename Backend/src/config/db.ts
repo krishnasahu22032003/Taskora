@@ -10,3 +10,10 @@ mongoose
 .catch((err)=>{
 console.log(err,"failed to connect to database")
 })
+
+const userSchema = new Schema({
+    username:{type:String,required:true},
+    email:{type:String,required:true,unique:true},
+    password:{type:String,required:true}
+})
+export const UserModel =model("User",userSchema)
