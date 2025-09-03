@@ -1,6 +1,7 @@
 import { UserModel } from "../config/db.js";
 import  {z} from "zod"
-import { Jwt } from "jsonwebtoken";
+import   jwt  from "jsonwebtoken";
+import JWT_USER_SECRET from "../config/config.js";
 import type { Request,Response } from "express";
 import bcrypt from "bcrypt"
 export async function UserSingUp(req:Request, res:Response){
@@ -54,5 +55,5 @@ if(!user){
 }
 const ok =await bcrypt.compare(password,user.password);
   if (!ok) return res.status(403).json({ message: "Incorrect credentials" });
-const token = jwt.sing({id:user._id},JWT_USER_SECRET,{expiresIn:"7d"})
+const token = jwt.sign({id:user._id},JWT_USER_SECRET,{expiresIn:"7d"})
 }
