@@ -118,4 +118,54 @@ export async function GetCurrentUser(req: Request, res: Response) {
   }
 }
 
+// update profile function
+
+export async function UpdateProfile(req:Request,res:Response){
+    const updateSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email"),
+});
+ try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, Message: "Unauthorized" });
+    }
+
+    // Validate input
+    const parseResult = updateSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        success: false, 
+        Message: parseResult.error.issues.map(e => e.message).join(", ") 
+      });
+    }
+
+    const { username, email } = parseResult.data;
+
+    // Check if email is already in use by another account
+    const exists = await UserModel.findOne({ email, _id: { $ne: req.user.id } });
+    if (exists) {
+      return res.status(409).json({ 
+        success: false, 
+        Message: "Email already used by another account" 
+      });
+    }
+
+    // Update user
+    const user = await UserModel.findByIdAndUpdate(
+      req.user.id,
+      { username, email },
+      { new: true, runValidators: true }
+    ).select("username email");
+
+    if (!user) {
+      return res.status(404).json({ success: false, Message: "User not found" });
+    }
+
+    return res.json({ success: true, user });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, Message: "Server error" });
+  }
+}
+
 
