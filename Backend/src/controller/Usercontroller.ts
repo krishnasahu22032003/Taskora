@@ -1,8 +1,9 @@
 import { UserModel } from "../config/db.js";
-import { z} from "zod"
+import  {z} from "zod"
+import { Jwt } from "jsonwebtoken";
 import type { Request,Response } from "express";
 import bcrypt from "bcrypt"
-export async function UserRegister(req:Request, res:Response){
+export async function UserSingUp(req:Request, res:Response){
     const requiredbody = z.object({
         username:z.string(),
                 email: z.string().email().min(5).max(50),
@@ -43,3 +44,15 @@ export async function UserRegister(req:Request, res:Response){
         })
        }
 } 
+
+export async function UsersignIn(req:Request,res:Response){
+
+const {email,password} = req.body;
+const user = await UserModel.findOne({email});
+if(!user){
+   return res.status(403).json({success:false,Message:"User does not exists please signUp first"})
+}
+const ok =await bcrypt.compare(password,user.password);
+  if (!ok) return res.status(403).json({ message: "Incorrect credentials" });
+const token = jwt.sing({id:user._id},JWT_USER_SECRET,{expiresIn:"7d"})
+}
