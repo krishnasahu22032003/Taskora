@@ -1,53 +1,53 @@
 import { UserModel } from "../config/db.js";
-import  {success, z} from "zod"
-import   jwt  from "jsonwebtoken";
+import { success, z } from "zod"
+import jwt from "jsonwebtoken";
 import JWT_USER_SECRET from "../config/config.js";
-import type { Request,Response } from "express";
+import type { Request, Response } from "express";
 import bcrypt from "bcrypt"
 
 // signin logic
 
-export async function UserSingUp(req:Request, res:Response){
-    const requiredbody = z.object({
-        username:z.string(),
-                email: z.string().email().min(5).max(50),
-        password: z.string().min(5).max(50).regex(/[a-z]/).regex(/[A-Z]/)
+export async function UserSingUp(req: Request, res: Response) {
+  const requiredbody = z.object({
+    username: z.string(),
+    email: z.string().email().min(5).max(50),
+    password: z.string().min(5).max(50).regex(/[a-z]/).regex(/[A-Z]/)
+  })
+  const parsedata = requiredbody.safeParse(req.body)
+  if (!parsedata.success) {
+    res.status(401).json({
+      message: "incorrect credentials"
     })
-    const parsedata = requiredbody.safeParse(req.body)
-    if(!parsedata.success){
-        res.status(401).json({
-            message:"incorrect credentials"
-        })
-            return 
-    }
-       const {username,email,password} = req.body
-       if(!username || !email || !password ){
-        res.status(400).json({success:false,Message:"All fields required"})
-       }
-    if(await UserModel.findOne({email})){
-      return res.status(409).json({success:false,Message:"User with this email already exists"})
-    }
+    return
+  }
+  const { username, email, password } = req.body
+  if (!username || !email || !password) {
+    res.status(400).json({ success: false, Message: "All fields required" })
+  }
+  if (await UserModel.findOne({ email })) {
+    return res.status(409).json({ success: false, Message: "User with this email already exists" })
+  }
 
-       let throwerror =false
-       try{
-        const hashedpassword =await bcrypt.hash(password,10)
-        await UserModel.create({
-            username:username,
-            email:email,
-            password:hashedpassword
-        })
-       }catch(e){
-        res.status(401).json({
-            Message:"Server error"
-        })
-        throwerror=true
-       }
-       if(!throwerror){
-        res.status(200).json({
-            Message:"You are signed Up"
-        })
-       }
-} 
+  let throwerror = false
+  try {
+    const hashedpassword = await bcrypt.hash(password, 10)
+    await UserModel.create({
+      username: username,
+      email: email,
+      password: hashedpassword
+    })
+  } catch (e) {
+    res.status(401).json({
+      Message: "Server error"
+    })
+    throwerror = true
+  }
+  if (!throwerror) {
+    res.status(200).json({
+      Message: "You are signed Up"
+    })
+  }
+}
 // sing up logic
 export async function UsersignIn(req: Request, res: Response) {
   try {
@@ -120,33 +120,32 @@ export async function GetCurrentUser(req: Request, res: Response) {
 
 // update profile function
 
-export async function UpdateProfile(req:Request,res:Response){
-    const updateSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  email: z.string().email("Invalid email"),
-});
- try {
+export async function UpdateProfile(req: Request, res: Response) {
+  const updateSchema = z.object({
+    username: z.string().min(1, "Username is required"),
+    email: z.string().email("Invalid email"),
+  });
+  try {
     if (!req.user) {
       return res.status(401).json({ success: false, Message: "Unauthorized" });
     }
 
-    // Validate input
+
     const parseResult = updateSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ 
-        success: false, 
-        Message: parseResult.error.issues.map(e => e.message).join(", ") 
+      return res.status(400).json({
+        success: false,
+        Message: parseResult.error.issues.map(e => e.message).join(", ")
       });
     }
 
     const { username, email } = parseResult.data;
 
-    // Check if email is already in use by another account
     const exists = await UserModel.findOne({ email, _id: { $ne: req.user.id } });
     if (exists) {
-      return res.status(409).json({ 
-        success: false, 
-        Message: "Email already used by another account" 
+      return res.status(409).json({
+        success: false,
+        Message: "Email already used by another account"
       });
     }
 
@@ -167,5 +166,33 @@ export async function UpdateProfile(req:Request,res:Response){
     return res.status(500).json({ success: false, Message: "Server error" });
   }
 }
+
+// update password function 
+
+export async function ChangePassword(req: Request, res: Response) {
+  const { currentpassword, newpassword } = req.body
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/
+  if (!currentpassword || !newpassword || !passwordRegex.test(newpassword)) {
+    return res.status(400).json({ success: false, Message: "Password must be at least 8 characters long and include one uppercase letter, one number, and one special character" })
+  }
+  try {
+    //@ts-ignore
+    const user = await UserModel.findById(req.user.id).select("password")
+    if (!user) {
+      return res.status(404).json({ success: false, Message: "User not found" })
+    }
+    const match = await bcrypt.compare(currentpassword, user.password)
+    if (!match) {
+      return res.status(401).json({ success: false, Message: "Current password is incorrect" })
+    }
+    user.password = await bcrypt.hash(newpassword, 10)
+    await user.save()
+    res.json({ success: true, Message: "Password changed successfully" })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ success: false, Message: "Server error" })
+  }
+}
+
 
 
