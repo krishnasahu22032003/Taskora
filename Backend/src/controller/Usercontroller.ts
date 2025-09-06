@@ -5,7 +5,7 @@ import JWT_USER_SECRET from "../config/config.js";
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt"
 
-// signin logic
+// signup logic
 
 export async function UserSingUp(req: Request, res: Response) {
   const requiredbody = z.object({
@@ -48,7 +48,7 @@ export async function UserSingUp(req: Request, res: Response) {
     })
   }
 }
-// sing up logic
+// sing in logic
 export async function UsersignIn(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
@@ -176,8 +176,8 @@ export async function ChangePassword(req: Request, res: Response) {
     return res.status(400).json({ success: false, Message: "Password must be at least 8 characters long and include one uppercase letter, one number, and one special character" })
   }
   try {
-    //@ts-ignore
-    const user = await UserModel.findById(req.user.id).select("password")
+   
+    const user = await UserModel.findById(req.user?.id).select("password")
     if (!user) {
       return res.status(404).json({ success: false, Message: "User not found" })
     }
