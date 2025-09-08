@@ -56,3 +56,38 @@ export const getTaskbyId= async (req:Request,res:Response)=>{
   }
 } 
 }
+
+//update a task by id
+export const updateTask = async (req: Request, res: Response) => {
+  try {
+    const data = { ...req.body };
+
+
+    if (data.completed !== undefined) {
+      data.completed = data.completed === "yes" || data.completed === true;
+    }
+
+
+    const updated = await Task.findOneAndUpdate(
+      { _id: req.params.id, owner: req.user.id },
+      data,
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found or not yours",
+      });
+    }
+
+    res.json({ success: true, message: "Task updated", task: updated });
+  } catch (err) {
+    if (err instanceof Error) {
+      res.status(500).json({ success: false, message: err.message });
+    } else {
+      res.status(500).json({ success: false, message: String(err) });
+    }
+  }
+};
+
