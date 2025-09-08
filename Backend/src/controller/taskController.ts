@@ -25,3 +25,18 @@ res.status(201).json({success:true,task:saved, Message:"Task successfully saved"
     }
 };
 
+//get all task for loged in user
+
+export const getTask = async (req:Request,res:Response)=>{
+    try{
+const tasks = await Task.find({owner:req.user.id}).sort({createdAt:-1})
+res.json({success:true,tasks})
+    }catch(err){
+      if (err instanceof Error) {
+    res.status(500).json({ success: false, message: err.message });
+  } else {
+    res.status(500).json({ success: false, message: String(err) });
+  }
+    }
+}
+
