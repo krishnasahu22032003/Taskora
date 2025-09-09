@@ -14,20 +14,24 @@ export default async function authMiddleware(
   res: Response,
   next: NextFunction
 ) {
-  const authHeader = req.headers["authorization"] as string | undefined;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({ success: false, message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ success: false, message: "Token missing" });
-  }
-
   try {
+
+    let token = req.cookies?.auth_token;
+
+
+    if (!token) {
+      const authHeader = req.headers["authorization"] as string | undefined;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
+    }
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No token provided" });
+    }
+
     const payload = jwt.verify(token, JWT_SECRET) as JwtPayloadWithId;
 
     const user = await UserModel.findById(payload.id).select("-password");

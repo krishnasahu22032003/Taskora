@@ -43,7 +43,7 @@ res.json({success:true,tasks})
 // get single task by id 
 
 export const getTaskbyId= async (req:Request,res:Response)=>{
-   try{const task =await Task.findOne({_id:req.params.id ,owmner:req.user.id})
+   try{const task =await Task.findOne({_id:req.params.id ,owner:req.user.id})
     if(!task){
         return res.status(404).json({success:false,Message:"task not found"})
     }
