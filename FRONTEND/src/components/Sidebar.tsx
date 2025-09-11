@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { Sparkles, Lightbulb, Menu, X } from "lucide-react";
-import TaskModal from "../components/AddTask";
+import TaskModal from "./AddTask";
 import {
   menuItems,
   SIDEBAR_CLASSES,
