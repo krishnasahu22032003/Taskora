@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { PlusCircle, X, Save, Calendar, AlignLeft, Flag, CheckCircle } from 'lucide-react';
 import { baseControlClasses, priorityStyles, DEFAULT_TASK } from '../assets/dummy';
 
@@ -21,9 +22,18 @@ interface TaskModalProps {
   onSave?: (task: Task) => void;
   onLogout?: () => void;
 }
-
+const normalizePriority = (p: string): "Low" | "Medium" | "High" => {
+  const formatted = p.toLowerCase();
+  if (formatted === "low") return "Low";
+  if (formatted === "medium") return "Medium";
+  return "High";
+};
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSave, onLogout }) => {
-  const [taskData, setTaskData] = useState<Task>(DEFAULT_TASK as Task);
+const [taskData, setTaskData] = useState<Task>({
+  ...DEFAULT_TASK,
+  id: DEFAULT_TASK.id?.toString(),
+  priority: normalizePriority(DEFAULT_TASK.priority),
+});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 

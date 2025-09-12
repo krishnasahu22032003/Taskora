@@ -1,14 +1,21 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import axios, { AxiosError } from "axios";
+import { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import axios from "axios";
 import { UserPlus } from "lucide-react";
 
-import { Inputwrapper, FIELDS, BUTTONCLASSES, MESSAGE_SUCCESS, MESSAGE_ERROR } from '../assets/dummy';
+import {
+  Inputwrapper,
+  FIELDS,
+  BUTTONCLASSES,
+  MESSAGE_SUCCESS,
+  MESSAGE_ERROR,
+} from "../assets/dummy";
 
 // Dummy & Constants
-const API_URL = "http://localhost:4000";
+const API_URL = "http://localhost:5000";
 
 interface SignUpForm {
-  name: string;
+  username: string;
   email: string;
   password: string;
 }
@@ -22,7 +29,7 @@ interface SignUpProps {
   onSwitchMode?: () => void;
 }
 
-const INITIAL_FORM: SignUpForm = { name: "", email: "", password: "" };
+const INITIAL_FORM: SignUpForm = { username: "", email: "", password: "" };
 
 const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
   const [formData, setFormData] = useState<SignUpForm>(INITIAL_FORM);
@@ -38,9 +45,15 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
     setLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      const { data } = await axios.post(`${API_URL}/api/user/register`, formData);
+      const { data } = await axios.post(
+        `${API_URL}/api/user/signup`,
+        formData
+      );
       console.log("SignUp successful:", data);
-      setMessage({ text: "Registration successful! You can now log in.", type: "success" });
+      setMessage({
+        text: "Registration successful! You can now log in.",
+        type: "success",
+      });
       setFormData(INITIAL_FORM);
     } catch (err: unknown) {
       console.error("SignUp error:", err);
@@ -54,8 +67,8 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value } = e.target; // ✅ use "name", not "username"
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -65,11 +78,17 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
           <UserPlus className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
-        <p className="text-gray-500 text-sm mt-1">Join TaskFlow to manage your tasks</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Join Taskora to manage your tasks
+        </p>
       </div>
 
       {message.text && (
-        <div className={message.type === "success" ? MESSAGE_SUCCESS : MESSAGE_ERROR}>
+        <div
+          className={
+            message.type === "success" ? MESSAGE_SUCCESS : MESSAGE_ERROR
+          }
+        >
           {message.text}
         </div>
       )}
@@ -80,6 +99,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
             <Icon className="text-purple-500 w-5 h-5 mr-2" />
             <input
               type={type}
+              name={name} // ✅ make sure "name" is passed
               placeholder={placeholder}
               value={formData[name as keyof SignUpForm]}
               onChange={handleChange}
@@ -90,7 +110,13 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
         ))}
 
         <button type="submit" className={BUTTONCLASSES} disabled={loading}>
-          {loading ? "Signing Up..." : <><UserPlus className="w-4 h-4" /> Sign Up</>}
+          {loading ? (
+            "Signing Up..."
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" /> Sign Up
+            </>
+          )}
         </button>
       </form>
 

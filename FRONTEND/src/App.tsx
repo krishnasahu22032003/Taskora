@@ -1,11 +1,17 @@
-import { Routes, Route, Outlet, useNavigate } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import { useEffect, useState } from "react";
-import Layout from "./components/Layout";
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Pending from './pages/Pending';
+import Complete from './pages/Complete';
+import Profile from './components/Profile';
+import Login from './components/Login';
+import SignUp from './components/SignUp';
+import './index.css';
 
-function App() {
+const App = () => {
   const navigate = useNavigate();
-  const [currentUser, setcurrentUser] = useState(() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     const stored = localStorage.getItem('currentUser');
     return stored ? JSON.parse(stored) : null;
   });
@@ -18,45 +24,66 @@ function App() {
     }
   }, [currentUser]);
 
-  const handleAuthSubmit = (data) => {
+  const handleAuthSubmit = data => {
     const user = {
       email: data.email,
       name: data.name || 'User',
-      avatar: ''
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'User')}&background=random`
     };
-    setcurrentUser(user);
+    setCurrentUser(user);
     navigate('/', { replace: true });
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    setcurrentUser(null);
+    setCurrentUser(null);
     navigate('/login', { replace: true });
   };
 
-  const ProtectedLayout = () => {
-    return (
-      <Layout user={currentUser} onLogout={handleLogout}>
-        <Outlet />
-      </Layout>
-    );
-  };
+  const ProtectedLayout = () => (
+    <Layout user={currentUser} onLogout={handleLogout}>
+      <Outlet />
+    </Layout>
+  );
 
   return (
     <Routes>
       <Route
-        path='/login'
+        path="/login"
         element={
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            {/* You can render your login form here */}
+            <Login onSubmit={handleAuthSubmit} onSwitchMode={() => navigate('/signup')} />
           </div>
         }
       />
-      <Route path='/' element={<ProtectedLayout />}>
-        {/* Nested routes can go here */}
+      <Route
+        path="/signup"
+        element={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <SignUp onSubmit={handleAuthSubmit} onSwitchMode={() => navigate('/login')} />
+          </div>
+        }
+      />
+
+      <Route
+        element={
+          currentUser
+            ? <ProtectedLayout />
+            : <Navigate to="/login" replace />
+        }>
+
+        <Route index element={<Dashboard />} />
+        <Route path="pending" element={<Pending />} />
+        <Route path="complete" element={<Complete />} />
+        <Route
+          path="profile"
+          element={<Profile user={currentUser} setCurrentUser={setCurrentUser} onLogout={handleLogout} />}
+        />
       </Route>
+
+      <Route path="*" element={<Navigate to={currentUser ? '/' : '/login'} replace />} />
     </Routes>
   );
-}
+};
 
 export default App;

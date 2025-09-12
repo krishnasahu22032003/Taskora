@@ -44,7 +44,8 @@ export async function UserSingUp(req: Request, res: Response) {
   }
   if (!throwerror) {
     res.status(200).json({
-      Message: "You are signed Up"
+      succes:true,
+     message: "You are signed up successfully"
     })
   }
 }

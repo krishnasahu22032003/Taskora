@@ -1,5 +1,6 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import axios, { AxiosError } from "axios";
+import { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import axios from "axios";
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -7,7 +8,6 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { INPUTWRAPPER, BUTTON_CLASSES } from "../assets/dummy";
 
-// Dummy data and repeated CSS
 interface LoginForm {
   email: string;
   password: string;
@@ -19,7 +19,7 @@ interface User {
 }
 
 interface LoginProps {
-  onSubmit?: (data: { token: string; userId: string } & User) => void;
+  onSubmit?: (data: { userId: string } & User) => void;
   onSwitchMode?: () => void;
 }
 
@@ -31,30 +31,24 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const url = "http://localhost:4000";
+  const url = "http://localhost:5000";
 
-  // Auto-login
+  // Auto-login using cookie
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId");
-    if (token) {
-      (async () => {
-        try {
-          const { data } = await axios.get(`${url}/api/user/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (data.success) {
-            onSubmit?.({ token, userId: userId || "", ...data.user });
-            toast.success("Session restored. Redirecting...");
-            navigate("/");
-          } else {
-            localStorage.clear();
-          }
-        } catch {
-          localStorage.clear();
+    (async () => {
+      try {
+        const { data } = await axios.get(`${url}/api/user/signin`, {
+          withCredentials: true, // ✅ send cookie
+        });
+        if (data.success) {
+          onSubmit?.({ userId: data.user.id, ...data.user });
+          toast.success("Session restored. Redirecting...");
+          navigate("/");
         }
-      })();
-    }
+      } catch {
+        // ignore if no session
+      }
+    })();
   }, [navigate, onSubmit]);
 
   useEffect(() => {
@@ -70,13 +64,17 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
 
     setLoading(true);
     try {
-      const { data } = await axios.post(`${url}/api/user/login`, formData);
-      if (!data.token) throw new Error(data.message || "Login failed.");
+      const { data } = await axios.post(`${url}/api/user/signin`, formData, {
+        withCredentials: true, // ✅ cookie will be set
+      });
 
-      localStorage.setItem("token", data.token);
+      if (!data.success) throw new Error(data.message || "Login failed.");
+
+      // ✅ no token storage, just keep userId if needed
       localStorage.setItem("userId", data.user.id);
+
       setFormData(INITIAL_FORM);
-      onSubmit?.({ token: data.token, userId: data.user.id, ...data.user });
+      onSubmit?.({ userId: data.user.id, ...data.user });
       toast.success("Login successful! Redirecting...");
       setTimeout(() => navigate("/"), 1000);
     } catch (err: unknown) {
@@ -94,7 +92,6 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
     onSwitchMode?.();
   };
 
-  // Field definitions
   const fields = [
     {
       name: "email",
