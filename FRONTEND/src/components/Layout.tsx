@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, } from "react";
+import type {ReactNode} from "react"
 import { Outlet } from "react-router-dom";
 import { Circle, TrendingUp, Zap, Clock } from "lucide-react";
 import Navbar from "./Navbar";
@@ -44,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token found");
 
-      const { data } = await axios.get("http://localhost:4000/api/tasks/gp", {
+      const { data } = await axios.get("http://localhost:5000/api/tasks/Tasks", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -58,15 +59,14 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
 
       setTasks(arr);
     } catch (err) {
-      const axiosErr = err as AxiosError;
-      console.error(err);
-      setError(
-        axiosErr.response?.data?.message ||
-          axiosErr.message ||
-          "Could not load tasks."
-      );
-      if (axiosErr.response?.status === 401) onLogout();
-    } finally {
+  const axiosErr = err as AxiosError<{ message?: string }>;
+  console.error(err);
+  setError(
+    axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
+  );
+  if (axiosErr.response?.status === 401) onLogout();
+}
+ finally {
       setLoading(false);
     }
   }, [onLogout]);
