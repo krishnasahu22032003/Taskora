@@ -11,7 +11,7 @@ interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskToEdit: FrontendTask | null;
-  onSave?: (task: Task) => void; // backend type
+  onSave?: (task: FrontendTask) => void; // backend type
   onLogout?: () => void;
 }
 
