@@ -5,14 +5,7 @@ import TaskItem from "../components/TaskItem";
 import { SORT_OPTIONS, CT_CLASSES } from "../assets/dummy";
 import type { FrontendTask } from "../types/types";
 
-interface Task {
-  _id?: string;
-  id?: string;
-  completed: boolean | number | string;
-  createdAt?: string;
-  priority?: string;
-  [key: string]: any;
-}
+
 
 interface OutletContext {
   tasks: FrontendTask[];

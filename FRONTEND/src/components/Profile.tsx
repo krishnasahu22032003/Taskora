@@ -1,5 +1,6 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import axios, { AxiosError } from "axios";
+import { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent} from "react"
+import axios from "axios";
 import { Lock, ChevronLeft, Shield, LogOut, Save, UserCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -8,7 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { INPUT_WRAPPER, FULL_BUTTON, SECTION_WRAPPER, BACK_BUTTON, DANGER_BTN, personalFields, securityFields } from '../assets/dummy';
 
 // Constants & Dummy Data
-const API_URL = "http://localhost:4000";
+const API_URL = "http://localhost:5000";
 
 interface ProfileData {
   name: string;
@@ -55,7 +56,7 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
-        setCurrentUser?.((prev) => ({
+        setCurrentUser?.((prev:any) => ({
           ...prev,
           name: profile.name,
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=random`,
@@ -94,16 +95,14 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
     }
   };
 
-  const handleProfileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setProfile((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPasswords((prev) => ({ ...prev, [name]: value }));
-  };
-
+const handleProfileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+  setProfile((prev: ProfileData) => ({ ...prev, [name]: value }));
+};
+const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+  setPasswords((prev: PasswordsData) => ({ ...prev, [name]: value }));
+};
   return (
     <div className="min-h-screen bg-gray-50">
       <ToastContainer position="top-center" autoClose={3000} />
@@ -187,3 +186,4 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
     </div>
   );
 };
+export default Profile;
