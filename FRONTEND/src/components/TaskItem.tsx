@@ -1,50 +1,45 @@
+// src/components/TaskItem.tsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { format, isToday } from "date-fns";
 import TaskModal from "./AddTask";
 import { getPriorityColor, getPriorityBadgeColor, TI_CLASSES, MENU_OPTIONS } from "../assets/dummy";
 import { CheckCircle2, MoreVertical, Clock, Calendar } from "lucide-react";
+import type { FrontendTask } from "../types/types";
 
 interface Subtask {
   title: string;
   completed: boolean;
 }
 
-interface Task {
-  _id?: string;
-  id?: string;
-  title: string;
-  description?: string;
-  priority: string;
-  completed: boolean | number | string;
-  dueDate?: string;
-  createdAt?: string;
-  subtasks?: Subtask[];
-  [key: string]: any;
-}
-
 interface TaskItemProps {
-  task: Task;
+  task: FrontendTask; // use FrontendTask (UI shape)
   onRefresh?: () => void;
   onLogout?: () => void;
   showCompleteCheckbox?: boolean;
+  onEdit?: () => void;
 }
 
-const API_BASE = "http://localhost:4000/api/tasks";
+const API_BASE = "http://localhost:5000/api/tasks";
+
+// helper to normalize completed value (handles boolean/number/string if it ever appears)
+const computeCompleted = (c: any): boolean => {
+  if (typeof c === "boolean") return c;
+  if (typeof c === "number") return c === 1;
+  if (typeof c === "string") return c.toLowerCase() === "yes";
+  return false;
+};
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showCompleteCheckbox = true }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(
-    [true, 1, "yes"].includes(typeof task.completed === "string" ? task.completed.toLowerCase() : task.completed)
-  );
+  const [isCompleted, setIsCompleted] = useState<boolean>(computeCompleted((task as any).completed));
   const [showEditModal, setShowEditModal] = useState(false);
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks || []);
 
   useEffect(() => {
-    setIsCompleted(
-      [true, 1, "yes"].includes(typeof task.completed === "string" ? task.completed.toLowerCase() : task.completed)
-    );
-  }, [task.completed]);
+    setIsCompleted(computeCompleted((task as any).completed));
+    setSubtasks(task.subtasks || []);
+  }, [task]);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -52,19 +47,20 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
     return { Authorization: `Bearer ${token}` };
   };
 
-  const borderColor = isCompleted
-    ? "border-green-500"
-    : getPriorityColor(task.priority).split(" ")[0];
+  const borderColor = isCompleted ? "border-green-500" : getPriorityColor(task.priority).split(" ")[0];
 
+  // Toggle completion (frontend boolean -> backend "Yes"/"No")
   const handleComplete = async () => {
     const newStatus = isCompleted ? "No" : "Yes";
     try {
-      await axios.put(`${API_BASE}/${task._id}/gp`, { completed: newStatus }, { headers: getAuthHeaders() });
+      // use task.id (FrontendTask) for API id
+      if (!task.id) throw new Error("Task id missing");
+      await axios.put(`${API_BASE}/${task.id}/gp`, { completed: newStatus }, { headers: getAuthHeaders() });
       setIsCompleted(!isCompleted);
       onRefresh?.();
     } catch (err: any) {
       console.error(err);
-      if (err.response?.status === 401) onLogout?.();
+      if (err?.response?.status === 401) onLogout?.();
     }
   };
 
@@ -76,23 +72,33 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`${API_BASE}/${task._id}/gp`, { headers: getAuthHeaders() });
+      if (!task.id) throw new Error("Task id missing");
+      await axios.delete(`${API_BASE}/${task.id}/gp`, { headers: getAuthHeaders() });
       onRefresh?.();
     } catch (err: any) {
       console.error(err);
-      if (err.response?.status === 401) onLogout?.();
+      if (err?.response?.status === 401) onLogout?.();
     }
   };
 
-  const handleSave = async (updatedTask: Task) => {
+  // `updatedTask` is FrontendTask; when we send to backend convert completed boolean -> "Yes"/"No"
+  const handleSave = async (updatedTask: FrontendTask) => {
     try {
-      const payload = (({ title, description, priority, dueDate, completed }) => ({ title, description, priority, dueDate, completed }))(updatedTask);
-      await axios.put(`${API_BASE}/${task._id}/gp`, payload, { headers: getAuthHeaders() });
+      if (!task.id) throw new Error("Task id missing");
+      const payload = {
+        title: updatedTask.title,
+        description: updatedTask.description,
+        priority: updatedTask.priority,
+        dueDate: updatedTask.dueDate,
+        completed: updatedTask.completed ? "Yes" : "No",
+        subtasks: updatedTask.subtasks || []
+      };
+      await axios.put(`${API_BASE}/${task.id}/gp`, payload, { headers: getAuthHeaders() });
       setShowEditModal(false);
       onRefresh?.();
     } catch (err: any) {
       console.error(err);
-      if (err.response?.status === 401) onLogout?.();
+      if (err?.response?.status === 401) onLogout?.();
     }
   };
 

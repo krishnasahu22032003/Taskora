@@ -16,7 +16,7 @@ import {
   Clock,
   Calendar,
 } from "lucide-react"
-
+import type { FrontendTask } from "../types/types";
 // Types
 type Priority = "Low" | "Medium" | "High" | string
 
@@ -28,14 +28,6 @@ interface BackendTask {
   completed: boolean | string
 }
 
-interface FrontendTask {
-  title: string
-  description: string
-  priority: Priority
-  dueDate: string
-  completed: boolean | string
-  id: number | null
-}
 
 // BACKEND TEST 
 // DUMMY DATA
@@ -88,9 +80,9 @@ export const DEFAULT_TASK: FrontendTask = {
   description: "",
   priority: "Low",
   dueDate: "",
-  completed: "No",
-  id: null,
-}
+  completed: false, // boolean, matches FrontendTask
+  id: undefined,    // string | undefined, matches FrontendTask
+};
 
 // LOGIN CSS
 export const INPUTWRAPPER =

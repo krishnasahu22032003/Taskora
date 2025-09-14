@@ -4,6 +4,7 @@ import { Plus, Filter, Home as HomeIcon, Calendar as CalendarIcon } from "lucide
 import TaskModal from "../components/AddTask";
 import TaskItem from "../components/TaskItem";
 import axios from "axios";
+import type { FrontendTask, Task } from "../types/types";
 
 import {
   WRAPPER, HEADER, ADD_BUTTON, STATS_GRID, STAT_CARD, ICON_WRAPPER, VALUE_CLASS, LABEL_CLASS,
@@ -14,65 +15,54 @@ import {
 // API Base
 const API_BASE = "http://localhost:5000/api/tasks";
 
-// Define task type
-interface Task {
-  _id?: string;
-  id?: string;
-  title?: string;
-  description?: string;
-  priority?: string;
-  completed?: boolean | number | string;
-  dueDate?: string;
-  subtasks?: { title: string; completed: boolean }[];
-  [key: string]: any;
-}
-
 interface OutletContext {
-  tasks: Task[];
+  tasks: FrontendTask[];
   refreshTasks: () => void;
 }
+
+// ✅ Helper: unify completed checks
+const isCompleted = (task: FrontendTask | Task): boolean => {
+  if (typeof task.completed === "boolean") return task.completed;
+  if (typeof task.completed === "string") return task.completed.toLowerCase() === "yes";
+  return false;
+};
 
 const Dashboard: React.FC = () => {
   const { tasks, refreshTasks } = useOutletContext<OutletContext>();
   const [filter, setFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
 
-  // Calculate stats
+  // Stats
   const stats = useMemo(() => ({
     total: tasks.length,
-    lowPriority: tasks.filter(t => t.priority?.toLowerCase() === "low").length,
-    mediumPriority: tasks.filter(t => t.priority?.toLowerCase() === "medium").length,
-    highPriority: tasks.filter(t => t.priority?.toLowerCase() === "high").length,
-    completed: tasks.filter(t =>
-      t.completed === true || t.completed === 1 ||
-      (typeof t.completed === "string" && t.completed.toLowerCase() === "yes")
-    ).length,
+    lowPriority: tasks.filter(t => t.priority === "Low").length,
+    mediumPriority: tasks.filter(t => t.priority === "Medium").length,
+    highPriority: tasks.filter(t => t.priority === "High").length,
+    completed: tasks.filter(isCompleted).length,
   }), [tasks]);
 
-  // Filter tasks
+  // Filtering
   const filteredTasks = useMemo(() => tasks.filter(task => {
     const dueDate = new Date(task.dueDate || "");
     const today = new Date();
     const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
     switch (filter) {
-      case "today":
-        return dueDate.toDateString() === today.toDateString();
-      case "week":
-        return dueDate >= today && dueDate <= nextWeek;
-      case "high":
-      case "medium":
-      case "low":
-        return task.priority?.toLowerCase() === filter;
-      default:
-        return true;
+      case "today": return dueDate.toDateString() === today.toDateString();
+      case "week": return dueDate >= today && dueDate <= nextWeek;
+      case "high": return task.priority === "High";
+      case "medium": return task.priority === "Medium";
+      case "low": return task.priority === "Low";
+      default: return true;
     }
   }), [tasks, filter]);
 
-  // Save tasks
-  const handleTaskSave = useCallback(async (taskData: Task) => {
+  // Save handler
+  const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
     try {
-      if (taskData.id) await axios.put(`${API_BASE}/${taskData.id}/gp`, taskData);
+      if (taskData.id) {
+        await axios.put(`${API_BASE}/${taskData.id}/gp`, taskData);
+      }
       refreshTasks();
       setShowModal(false);
       setSelectedTask(null);
@@ -93,8 +83,7 @@ const Dashboard: React.FC = () => {
           <p className="text-sm text-gray-500 mt-1 ml-7 truncate">Manage your tasks efficiently</p>
         </div>
         <button onClick={() => setShowModal(true)} className={ADD_BUTTON}>
-          <Plus size={18} />
-          Add New Task
+          <Plus size={18} /> Add New Task
         </button>
       </div>
 
@@ -105,7 +94,9 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center gap-2 md:gap-3">
               <div className={`${ICON_WRAPPER} ${iconColor}`}><Icon className="w-4 h-4 md:w-5 md:h-5" /></div>
               <div className="min-w-0">
-                <p className={`${VALUE_CLASS} ${gradient ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 bg-clip-text text-transparent" : textColor}`}>{stats[valueKey as keyof typeof stats]}</p>
+                <p className={`${VALUE_CLASS} ${gradient ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 bg-clip-text text-transparent" : textColor}`}>
+                  {stats[valueKey as keyof typeof stats]}
+                </p>
                 <p className={LABEL_CLASS}>{label}</p>
               </div>
             </div>
@@ -113,7 +104,7 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Content */}
+      {/* Tasks */}
       <div className="space-y-6">
         {/* Filter */}
         <div className={FILTER_WRAPPER}>
@@ -126,7 +117,9 @@ const Dashboard: React.FC = () => {
           </select>
           <div className={TABS_WRAPPER}>
             {FILTER_OPTIONS.map(opt => (
-              <button key={opt} onClick={() => setFilter(opt)} className={`${TAB_BASE} ${filter === opt ? TAB_ACTIVE : TAB_INACTIVE}`}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</button>
+              <button key={opt} onClick={() => setFilter(opt)} className={`${TAB_BASE} ${filter === opt ? TAB_ACTIVE : TAB_INACTIVE}`}>
+                {opt.charAt(0).toUpperCase() + opt.slice(1)}
+              </button>
             ))}
           </div>
         </div>
@@ -143,7 +136,7 @@ const Dashboard: React.FC = () => {
           ) : (
             filteredTasks.map(task => (
               <TaskItem
-                key={task._id || task.id}
+                key={task.id}
                 task={task}
                 onRefresh={refreshTasks}
                 showCompleteCheckbox

@@ -1,11 +1,28 @@
-export interface Task {
-  _id?: string;
-  id?: string;
+// src/types/types.ts
+
+export interface SubTask {
   title: string;
-  description?: string;
-  priority?: "low" | "medium" | "high" | string;
-  completed?: boolean | number | string;
-  dueDate?: string;
-  subtasks?: { title: string; completed: boolean }[];
-  [key: string]: any;
+  completed: boolean;
+}
+
+export interface BaseTask {
+  title: string;
+  description: string;
+  dueDate: string;
+  priority: "Low" | "Medium" | "High";
+  subtasks?: SubTask[];
+  createdAt?: string;   // <-- ADDED: optional createdAt (ISO string)
+}
+
+// Backend representation (DB / API)
+export interface Task extends BaseTask {
+  id?: string;
+  _id?: string;
+  completed: "Yes" | "No";
+}
+
+// Frontend representation (UI state)
+export interface FrontendTask extends BaseTask {
+  id?: string;          // use string id (no null) to avoid type issues
+  completed: boolean;   // boolean in UI
 }
