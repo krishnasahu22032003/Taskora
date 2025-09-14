@@ -18,6 +18,8 @@ interface TaskItemProps {
   onLogout?: () => void;
   showCompleteCheckbox?: boolean;
   onEdit?: () => void;
+    onDelete?: () => void | Promise<void>;
+  onToggleComplete?: () => void | Promise<void>;
 }
 
 const API_BASE = "http://localhost:5000/api/tasks";

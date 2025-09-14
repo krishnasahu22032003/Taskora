@@ -5,17 +5,18 @@ import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/AddTask';
 import { layoutClasses } from '../assets/dummy';
 
-interface Task {
-  _id?: string;
+interface FrontendTask {
   id?: string;
-  completed: boolean | number | string;
+  title: string;
+  description: string;
+  priority: "Low" | "Medium" | "High";
+  dueDate: string;
+  completed: boolean; // always boolean in frontend
+  subtasks?: { title: string; completed: boolean }[];
   createdAt?: string;
-  priority?: string;
-  [key: string]: any;
 }
-
 interface OutletContext {
-  tasks: Task[];
+  tasks: FrontendTask[];
   refreshTasks: () => void;
 }
 
@@ -29,7 +30,7 @@ const sortOptions = [
 const PendingTasks: React.FC = () => {
   const { tasks = [], refreshTasks } = useOutletContext<OutletContext>();
   const [sortBy, setSortBy] = useState<string>('newest');
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const getHeaders = () => {
@@ -56,7 +57,7 @@ const PendingTasks: React.FC = () => {
 
   const sortedPendingTasks = useMemo(() => {
     const filtered = tasks.filter(
-      (t) => !t.completed || (typeof t.completed === 'string' && t.completed.toLowerCase() === 'no')
+      (t) => !t.completed || (typeof t.completed === 'string' && t.completed === 'no')
     );
     return filtered.sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
@@ -117,12 +118,12 @@ const PendingTasks: React.FC = () => {
         ) : (
           sortedPendingTasks.map(t => (
             <TaskItem
-              key={t._id || t.id}
+              key={t.id || t.id}
               task={t}
               showCompleteCheckbox
-              onDelete={() => handleDelete(t._id || t.id)}
+              onDelete={() => handleDelete(t.id || t.id)}
               onToggleComplete={() => handleToggleComplete(
-                t._id || t.id,
+                t.id || t.id,
                 !t.completed
               )}
               onEdit={() => { setSelectedTask(t); setShowModal(true); }}
@@ -134,7 +135,7 @@ const PendingTasks: React.FC = () => {
       <TaskModal
         isOpen={!!selectedTask || showModal}
         onClose={() => { setShowModal(false); setSelectedTask(null); refreshTasks(); }}
-        taskToEdit={selectedTask}
+        taskToEdit={selectedTask ?? null}
       />
     </div>
   );
