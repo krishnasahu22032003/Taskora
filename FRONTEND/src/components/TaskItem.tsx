@@ -20,7 +20,9 @@ interface TaskItemProps {
   onEdit?: () => void;
     onDelete?: () => void | Promise<void>;
   onToggleComplete?: () => void | Promise<void>;
+    className?: string; // <-- add this
 }
+
 
 const API_BASE = "http://localhost:5000/api/tasks";
 

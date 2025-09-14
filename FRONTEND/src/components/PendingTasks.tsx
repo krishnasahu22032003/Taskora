@@ -57,7 +57,7 @@ const PendingTasks: React.FC = () => {
 
   const sortedPendingTasks = useMemo(() => {
     const filtered = tasks.filter(
-      (t) => !t.completed || (typeof t.completed === 'string' && t.completed === 'no')
+      (t) => !t.completed 
     );
     return filtered.sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
@@ -118,12 +118,12 @@ const PendingTasks: React.FC = () => {
         ) : (
           sortedPendingTasks.map(t => (
             <TaskItem
-              key={t.id || t.id}
+              key={t.id}
               task={t}
               showCompleteCheckbox
-              onDelete={() => handleDelete(t.id || t.id)}
+              onDelete={() => handleDelete(t.id)}
               onToggleComplete={() => handleToggleComplete(
-                t.id || t.id,
+                t.id ,
                 !t.completed
               )}
               onEdit={() => { setSelectedTask(t); setShowModal(true); }}

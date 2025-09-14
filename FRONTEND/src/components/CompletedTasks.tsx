@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { CheckCircle2, Filter } from "lucide-react";
 import TaskItem from "../components/TaskItem";
 import { SORT_OPTIONS, CT_CLASSES } from "../assets/dummy";
+import type { FrontendTask } from "../types/types";
 
 interface Task {
   _id?: string;
@@ -14,7 +15,7 @@ interface Task {
 }
 
 interface OutletContext {
-  tasks: Task[];
+  tasks: FrontendTask[];
   refreshTasks: () => void;
 }
 
@@ -24,10 +25,8 @@ const CompletedTasks: React.FC = () => {
 
   const sortedCompletedTasks = useMemo(() => {
     return tasks
-      .filter(task =>
-        [true, 1, "yes"].includes(
-          typeof task.completed === "string" ? task.completed.toLowerCase() : task.completed
-        )
+      .filter(task => task.completed
+      
       )
       .sort((a, b) => {
         switch (sortBy) {
@@ -113,7 +112,7 @@ const CompletedTasks: React.FC = () => {
         ) : (
           sortedCompletedTasks.map(task => (
             <TaskItem
-              key={task._id || task.id}
+              key={task.id || task.id}
               task={task}
               onRefresh={refreshTasks}
               showCompleteCheckbox={false}

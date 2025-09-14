@@ -24,5 +24,5 @@ export interface Task extends BaseTask {
 // Frontend representation (UI state)
 export interface FrontendTask extends BaseTask {
   id?: string;          // use string id (no null) to avoid type issues
-  completed: boolean;   // boolean in UI
+  completed: boolean; // boolean in UI
 }
