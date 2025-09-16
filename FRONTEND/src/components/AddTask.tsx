@@ -5,21 +5,21 @@ import { PlusCircle, X, Save, Calendar, AlignLeft, Flag, CheckCircle } from 'luc
 import { baseControlClasses, priorityStyles, DEFAULT_TASK } from '../assets/dummy';
 import type { Task, FrontendTask } from '../types/types';
 
-const API_BASE = 'http://localhost:5000/api/tasks';
+const API_BASE = 'http://localhost:5000/api/Task';
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskToEdit?: FrontendTask | null;
-  onSave?: (task: FrontendTask) => void; // backend type
+  onSave?: (task: FrontendTask) => void;
   onLogout?: () => void;
 }
 
-const normalizePriority = (p: string): "Low" | "Medium" | "High" => {
+const normalizePriority = (p: string): 'low' | 'medium' | 'high' => {
   const formatted = p.toLowerCase();
-  if (formatted === "low") return "Low";
-  if (formatted === "medium") return "Medium";
-  return "High";
+  if (formatted === 'low') return 'low';
+  if (formatted === 'medium') return 'medium';
+  return 'high';
 };
 
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSave, onLogout }) => {
@@ -29,23 +29,22 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Populate modal when opening
-useEffect(() => {
-  if (!isOpen) return;
+  // Populate modal when opening or editing
+  useEffect(() => {
+    if (!isOpen) return;
 
-  if (taskToEdit) {
-    setTaskData({
-      ...taskToEdit,
-      completed: taskToEdit.completed === true, // ensure boolean
-      id: taskToEdit.id, // only use `id`, remove _id reference
-    });
-  } else {
-    setTaskData({ ...DEFAULT_TASK });
-  }
+    if (taskToEdit) {
+      setTaskData({
+        ...taskToEdit,
+        completed: taskToEdit.completed === true,
+        id: taskToEdit.id,
+      });
+    } else {
+      setTaskData({ ...DEFAULT_TASK });
+    }
 
-  setError(null);
-}, [isOpen, taskToEdit]);
-
+    setError(null);
+  }, [isOpen, taskToEdit]);
 
   // Generic input handler
   const handleChange = useCallback(
@@ -58,16 +57,6 @@ useEffect(() => {
     },
     []
   );
-
-  // Get auth headers
-  const getHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('No auth token found');
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    };
-  }, []);
 
   // Handle form submit
   const handleSubmit = useCallback(
@@ -83,7 +72,6 @@ useEffect(() => {
       setError(null);
 
       try {
-        // Convert FrontendTask → Task
         const payload: Task = {
           ...taskData,
           completed: taskData.completed ? 'Yes' : 'No',
@@ -91,12 +79,13 @@ useEffect(() => {
         };
 
         const isEdit = Boolean(taskData.id);
-        const url = isEdit ? `${API_BASE}/${taskData.id}/gp` : `${API_BASE}/gp`;
+        const url = isEdit ? `${API_BASE}/${taskData.id}/Task` : `${API_BASE}/Task`;
 
         const resp = await fetch(url, {
           method: isEdit ? 'PUT' : 'POST',
-          headers: getHeaders(),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+          credentials: 'include', // send httpOnly cookie
         });
 
         if (!resp.ok) {
@@ -106,7 +95,7 @@ useEffect(() => {
         }
 
         const saved = await resp.json();
-        onSave?.(saved); // backend Task
+        onSave?.(saved);
         onClose();
       } catch (err: any) {
         console.error(err);
@@ -115,7 +104,7 @@ useEffect(() => {
         setLoading(false);
       }
     },
-    [taskData, today, getHeaders, onLogout, onSave, onClose]
+    [taskData, today, onLogout, onSave, onClose]
   );
 
   if (!isOpen) return null;
@@ -123,12 +112,16 @@ useEffect(() => {
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/20 z-50 flex items-center justify-center p-4">
       <div className="bg-white border border-purple-100 rounded-xl max-w-md w-full shadow-lg p-6 relative animate-fadeIn">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             {taskData.id ? <Save className="text-purple-500 w-5 h-5" /> : <PlusCircle className="text-purple-500 w-5 h-5" />}
             {taskData.id ? 'Edit Task' : 'Create New Task'}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-purple-100 rounded-lg transition-colors text-gray-500 hover:text-purple-700">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-purple-100 rounded-lg transition-colors text-gray-500 hover:text-purple-700"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -179,9 +172,9 @@ useEffect(() => {
                 onChange={handleChange}
                 className={`${baseControlClasses} ${priorityStyles[taskData.priority]}`}
               >
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
+                <option value="low">Low</option>
+  <option value="medium">Medium</option>
+  <option value="high">High</option>
               </select>
             </div>
             <div>
