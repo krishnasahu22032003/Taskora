@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, } from "react";
-import type {ReactNode} from "react"
+import { useState, useEffect, useCallback, useMemo } from "react";
+import type { ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { Circle, TrendingUp, Zap, Clock } from "lucide-react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import axios, { AxiosError } from "axios";
+import Cookies from "js-cookie";
 
 // Define Task type
 interface Task {
@@ -21,8 +22,9 @@ interface LayoutProps {
     name?: string;
     email?: string;
     avatar?: string;
-  };
+  } | null;
   onLogout: () => void;
+  children?: ReactNode;
 }
 
 // StatCard props type
@@ -42,7 +44,8 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
+      // Read token from cookies
+      const token = Cookies.get("token");
       if (!token) throw new Error("No auth token found");
 
       const { data } = await axios.get("http://localhost:5000/api/tasks/Tasks", {
@@ -59,14 +62,13 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
 
       setTasks(arr);
     } catch (err) {
-  const axiosErr = err as AxiosError<{ message?: string }>;
-  console.error(err);
-  setError(
-    axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
-  );
-  if (axiosErr.response?.status === 401) onLogout();
-}
- finally {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      console.error(err);
+      setError(
+        axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
+      );
+      if (axiosErr.response?.status === 401) onLogout();
+    } finally {
       setLoading(false);
     }
   }, [onLogout]);
@@ -139,8 +141,8 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} onLogout={onLogout} />
-      <Sidebar user={user} tasks={tasks} />
+      <Navbar user={user ?? {}} onLogout={onLogout} />
+      <Sidebar user={user ?? {}} tasks={tasks} />
 
       <div className="ml-0 xl:ml-64 lg:ml-64 md:ml-16 pt-16 p-3 sm:p-4 md:p-4 transition-all duration-300">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -149,6 +151,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
           </div>
 
           <div className="xl:col-span-1 space-y-4 sm:space-y-6">
+            {/* Task Statistics Card */}
             <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-purple-100">
               <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
@@ -203,6 +206,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
               </div>
             </div>
 
+            {/* Recent Activity Card */}
             <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-purple-100">
               <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 flex items-center gap-2">
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />

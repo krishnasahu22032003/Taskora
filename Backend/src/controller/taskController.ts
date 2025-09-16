@@ -47,7 +47,7 @@ export const getTaskbyId= async (req:Request,res:Response)=>{
     if(!task){
         return res.status(404).json({success:false,Message:"task not found"})
     }
-    res.json({succes:true,task})
+    res.json({success:true,task})
 }catch(err){
       if (err instanceof Error) {
     res.status(500).json({ success: false, message: err.message });

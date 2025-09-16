@@ -1,13 +1,9 @@
-import { useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import { useState} from "react";
+import type{ ChangeEvent, FormEvent } from "react"
 import axios from "axios";
 import { UserPlus } from "lucide-react";
-
-/**
- * SignUp.tsx
- * - Modern glassmorphism styling (Tailwind)
- * - Frontend validation matching backend constraints
- */
+import { useNavigate } from "react-router-dom";
+import type { User } from "../types/types";
 
 const Inputwrapper =
   "flex items-center gap-3 bg-white/6 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-3 transition-shadow focus-within:shadow-[0_8px_32px_rgba(124,58,237,0.06)]";
@@ -37,74 +33,31 @@ interface Message {
 
 interface SignUpProps {
   onSwitchMode?: () => void;
+  onSubmit?: (user: User) => void; // App.tsx handler to set currentUser
 }
 
 const INITIAL_FORM: SignUpForm = { username: "", email: "", password: "" };
 
-const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
+const SignUp: React.FC<SignUpProps> = ({ onSwitchMode, onSubmit }) => {
   const [formData, setFormData] = useState<SignUpForm>(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>({ text: "", type: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigate = useNavigate();
 
   const isUsernameValid = (v: string) => v.trim().length > 0;
-  const isEmailValid = (v: string) => {
-    if (!v) return false;
-    if (v.length < 5 || v.length > 50) return false;
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(v);
-  };
-  const isPasswordValid = (v: string) => {
-    if (!v) return false;
-    if (v.length < 5 || v.length > 50) return false;
-    if (!/[a-z]/.test(v)) return false;
-    if (!/[A-Z]/.test(v)) return false;
-    return true;
-  };
+  const isEmailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length >= 5 && v.length <= 50;
+  const isPasswordValid = (v: string) =>
+    /[a-z]/.test(v) && /[A-Z]/.test(v) && v.length >= 5 && v.length <= 50;
 
   const validateAll = (data: SignUpForm) => {
     const e: Record<string, string> = {};
     if (!isUsernameValid(data.username)) e.username = "Username is required.";
     if (!isEmailValid(data.email)) e.email = "Email must be valid and 5–50 characters.";
     if (!isPasswordValid(data.password))
-      e.password =
-        "Password must be 5–50 chars and include at least one lowercase and one uppercase letter.";
+      e.password = "Password must be 5–50 chars and include lowercase & uppercase.";
     setErrors(e);
     return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setMessage({ text: "", type: "" });
-
-    if (!validateAll(formData)) return;
-
-    setLoading(true);
-    try {
-      const { data } = await axios.post(`${API_URL}/api/user/signup`, formData, {
-        withCredentials: true,
-      });
-
-  if (data?.success === false) {
-  setMessage({ text: data.message || "Signup failed", type: "error" });
-} else {
-  setMessage({ text: "Registration successful! You can now log in.", type: "success" });
-  setFormData(INITIAL_FORM);
-  setErrors({});
-
-  // Clear the success message after 3 seconds
-  setTimeout(() => {
-    setMessage({ text: "", type: "" });
-  }, 3000);
-}
-    } catch (err: unknown) {
-      let msg = "An error occurred. Please try again.";
-      if (axios.isAxiosError(err)) msg = err.response?.data?.message || msg;
-      else if (err instanceof Error) msg = err.message;
-      setMessage({ text: msg, type: "error" });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -114,16 +67,13 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
     setErrors((prev) => {
       const copy = { ...prev };
       if (name === "username") {
-        if (!isUsernameValid(value)) copy.username = "Username is required.";
-        else delete copy.username;
+        !isUsernameValid(value) ? (copy.username = "Username is required.") : delete copy.username;
       } else if (name === "email") {
-        if (!isEmailValid(value)) copy.email = "Email must be valid and 5–50 chars.";
-        else delete copy.email;
+        !isEmailValid(value) ? (copy.email = "Email must be valid and 5–50 chars.") : delete copy.email;
       } else if (name === "password") {
-        if (!isPasswordValid(value))
-          copy.password =
-            "Password must be 5–50 chars and include at least one lowercase and one uppercase letter.";
-        else delete copy.password;
+        !isPasswordValid(value)
+          ? (copy.password = "Password must be 5–50 chars and include lowercase & uppercase.")
+          : delete copy.password;
       }
       return copy;
     });
@@ -136,9 +86,50 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
     return "";
   };
 
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setMessage({ text: "", type: "" });
+    if (!validateAll(formData)) return;
+
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_URL}/api/user/signup`, formData, {
+        withCredentials: true,
+      });
+
+      if (data?.success === false) {
+        setMessage({ text: data.message || "Signup failed", type: "error" });
+        return;
+      }
+
+      // Auto-login after signup
+      const { data: loginData } = await axios.post(`${API_URL}/api/user/signin`, {
+        email: formData.email,
+        password: formData.password,
+      }, { withCredentials: true });
+
+      if (!loginData.success || !loginData.user) throw new Error(loginData.message || "Login failed after signup");
+
+      // Call App's handler to update cookies & state
+      onSubmit?.(loginData.user);
+
+      setFormData(INITIAL_FORM);
+      setErrors({});
+      setMessage({ text: "Account created & logged in successfully!", type: "success" });
+
+      setTimeout(() => navigate("/"), 800);
+    } catch (err: unknown) {
+      let msg = "An error occurred. Please try again.";
+      if (axios.isAxiosError(err)) msg = err.response?.data?.message || msg;
+      else if (err instanceof Error) msg = err.message;
+      setMessage({ text: msg, type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-purple-900 to-pink-900 flex items-center justify-center p-6">
-      {/* Full page wrapper */}
       <div className="w-full max-w-lg p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/3 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
         {/* Decorative blobs */}
         <div className="pointer-events-none absolute -left-20 -top-24 w-72 h-72 rounded-full bg-gradient-to-tr from-fuchsia-500 via-purple-500 to-indigo-400 opacity-20 blur-3xl transform rotate-45 animate-tilt"></div>
@@ -151,15 +142,13 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Create an account</h1>
-              <p className="text-sm text-slate-200/80">Join Taskora — organize your life with style.</p>
+              <p className="text-sm text-slate-200/80">Join TaskFlow — organize your life with style.</p>
             </div>
           </div>
 
           {message.text && (
             <div className="mb-4">
-              <div className={message.type === "success" ? SUCCESS_BADGE : ERROR_BADGE}>
-                {message.text}
-              </div>
+              <div className={message.type === "success" ? SUCCESS_BADGE : ERROR_BADGE}>{message.text}</div>
             </div>
           )}
 
@@ -168,9 +157,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
               <div key={name}>
                 <label className="sr-only" htmlFor={name}>{placeholder}</label>
                 <div className={Inputwrapper}>
-                  <div className="text-slate-300/80">
-                    <Icon className="w-5 h-5" />
-                  </div>
+                  <Icon className="w-5 h-5 text-slate-300/80" />
                   <input
                     id={name}
                     name={name}
@@ -185,9 +172,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
                   />
                 </div>
 
-                {errors[name] && (
-                  <p id={`${name}-error`} className="mt-2 text-xs text-red-200">{errors[name]}</p>
-                )}
+                {errors[name] && <p id={`${name}-error`} className="mt-2 text-xs text-red-200">{errors[name]}</p>}
 
                 {name === "password" && (
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-300/80">
@@ -202,7 +187,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
               type="submit"
               className={`${BUTTONCLASSES} bg-gradient-to-r from-fuchsia-500 to-purple-600`}
               disabled={loading || Object.keys(errors).length > 0}
-              aria-disabled={loading || Object.keys(errors).length > 0}
             >
               {loading ? "Creating..." : <><UserPlus className="w-4 h-4" /> Create Account</>}
             </button>
@@ -210,10 +194,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode }) => {
 
           <div className="mt-6 text-center text-sm text-slate-200/80">
             Already have an account?{" "}
-            <button
-              onClick={onSwitchMode}
-              className="text-white font-semibold underline-offset-2 hover:underline"
-            >
+            <button onClick={onSwitchMode} className="text-white font-semibold underline-offset-2 hover:underline">
               Login
             </button>
           </div>

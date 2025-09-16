@@ -4,7 +4,13 @@ export interface SubTask {
   title: string;
   completed: boolean;
 }
-
+export interface User {
+    id?: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  token?: string; // optional, if backend returns a token
+}
 export interface BaseTask {
   title: string;
   description: string;

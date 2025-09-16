@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import type { ChangeEvent, FormEvent} from "react"
+import type { ChangeEvent, FormEvent,Dispatch, SetStateAction } from "react"
 import axios from "axios";
 import { Lock, ChevronLeft, Shield, LogOut, Save, UserCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import type { User } from "../types/types";
 import { INPUT_WRAPPER, FULL_BUTTON, SECTION_WRAPPER, BACK_BUTTON, DANGER_BTN, personalFields, securityFields } from '../assets/dummy';
 
 // Constants & Dummy Data
@@ -25,8 +25,9 @@ interface PasswordsData {
 }
 
 interface ProfileProps {
-  setCurrentUser?: (user: any) => void;
-  onLogout?: () => void;
+ user: User | null;
+  setCurrentUser: Dispatch<SetStateAction<User | null>>;
+  onLogout: () => void;
 }
 
 const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {

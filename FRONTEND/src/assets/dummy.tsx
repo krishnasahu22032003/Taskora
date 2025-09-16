@@ -12,9 +12,7 @@ import {
   Award,
   Edit2,
   Trash2,
-  MoreVertical,
-  Clock,
-  Calendar,
+ 
 } from "lucide-react"
 import type { FrontendTask } from "../types/types";
 // Types
@@ -31,7 +29,7 @@ interface BackendTask {
 
 // BACKEND TEST 
 // DUMMY DATA
-const backendDummy: BackendTask[] = [
+export const backendDummy: BackendTask[] = [
   {
     title: "Buy groceries",
     description: "Milk, bread, eggs, and spinach",
@@ -293,6 +291,8 @@ export const TI_CLASSES = {
     createdRow: "flex items-center gap-1.5 text-xs text-gray-400 whitespace-nowrap",
 }
 // APP.JSX
-const user = {
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'User')}&background=random`
-    };
+export const createUserAvatar = (user: { name?: string }) => ({
+  avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random`
+});
+const user = createUserAvatar({ name: "Krishna" });
+console.log(user.avatar); // avatar URL for Krishna

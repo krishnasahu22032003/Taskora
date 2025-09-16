@@ -5,19 +5,15 @@ import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import type { User } from "../types/types";
 
 interface LoginForm {
   email: string;
   password: string;
 }
 
-interface User {
-  id: string;
-  [key: string]: any;
-}
-
 interface LoginProps {
-  onSubmit?: (data: { userId: string } & User) => void;
+  onSubmit?: (data: User) => void;
   onSwitchMode?: () => void;
 }
 
@@ -29,25 +25,9 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const url = "http://localhost:5000";
+  const API_URL = "http://localhost:5000";
 
-  // Auto-login using cookie
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await axios.get(`${url}/api/user/signin`, {
-          withCredentials: true,
-        });
-        if (data.success) {
-          onSubmit?.({ userId: data.user.id, ...data.user });
-          toast.success("Session restored. Redirecting...");
-          navigate("/");
-        }
-      } catch {
-        // ignore if no session
-      }
-    })();
-  }, [navigate, onSubmit]);
+  
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -58,17 +38,18 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
 
     setLoading(true);
     try {
-      const { data } = await axios.post(`${url}/api/user/signin`, formData, {
+      const { data } = await axios.post(`${API_URL}/api/user/signin`, formData, {
         withCredentials: true,
       });
 
-      if (!data.success) throw new Error(data.message || "Login failed.");
+      if (!data.success || !data.user) throw new Error(data.message || "Login failed.");
 
-      localStorage.setItem("userId", data.user.id);
+      // Call App's handler to store user in cookie & update state
+      onSubmit?.(data.user);
+
       setFormData(INITIAL_FORM);
-      onSubmit?.({ userId: data.user.id, ...data.user });
       toast.success("Login successful! Redirecting...");
-      setTimeout(() => navigate("/"), 1000);
+      setTimeout(() => navigate("/"), 800);
     } catch (err: unknown) {
       let msg = "Login failed.";
       if (axios.isAxiosError(err)) msg = err.response?.data?.message || err.message;
@@ -85,12 +66,7 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
   };
 
   const fields = [
-    {
-      name: "email",
-      type: "email",
-      placeholder: "Email",
-      icon: Mail,
-    },
+    { name: "email", type: "email", placeholder: "Email", icon: Mail },
     {
       name: "password",
       type: showPassword ? "text" : "password",

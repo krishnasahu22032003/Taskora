@@ -20,7 +20,7 @@ interface OutletContext {
   refreshTasks: () => void;
 }
 
-const API_BASE = 'http://localhost:4000/api/tasks';
+const API_BASE = 'http://localhost:5000/api/tasks';
 const sortOptions = [
   { id: 'newest', label: 'Newest', icon: <SortDesc className="w-3 h-3" /> },
   { id: 'oldest', label: 'Oldest', icon: <SortAsc className="w-3 h-3" /> },
