@@ -90,6 +90,7 @@ export async function UsersignIn(req: Request, res: Response) {
       success: true,
       message: "Signin successful",
       user: { id: user._id, username: user.username, email: user.email },
+      token,
     });
   } catch (error) {
     console.error("Signin error:", error);
@@ -194,6 +195,20 @@ export async function ChangePassword(req: Request, res: Response) {
     return res.status(500).json({ success: false, Message: "Server error" })
   }
 }
-
+// logout function
+// Usercontroller.js
+export async function Logout(req:Request, res:Response) {
+  try {
+    res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+    return res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
 
 

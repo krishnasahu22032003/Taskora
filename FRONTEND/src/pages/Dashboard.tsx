@@ -13,7 +13,7 @@ import {
 } from '../assets/dummy';
 
 // API Base
-const API_BASE = "http://localhost:5000/api/tasks";
+const API_BASE = "http://localhost:5000/api/Task";
 
 interface OutletContext {
   tasks: FrontendTask[];
@@ -61,7 +61,7 @@ const Dashboard: React.FC = () => {
   const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
     try {
       if (taskData.id) {
-        await axios.put(`${API_BASE}/${taskData.id}/gp`, taskData);
+        await axios.put(`${API_BASE}/${taskData.id}/Task`, taskData);
       }
       refreshTasks();
       setShowModal(false);

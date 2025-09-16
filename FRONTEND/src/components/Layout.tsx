@@ -39,39 +39,37 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTasks = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+ const fetchTasks = useCallback(async () => {
+  setLoading(true);
+  setError(null);
 
-    try {
-      // Read token from cookies
-      const token = Cookies.get("token");
-      if (!token) throw new Error("No auth token found");
+  try {
+    // Remove reading token from JS entirely
+    const { data } = await axios.get("http://localhost:5000/api/Task/Task", {
+      withCredentials: true, // <--- this sends the httpOnly cookie automatically
+    });
 
-      const { data } = await axios.get("http://localhost:5000/api/tasks/Tasks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const arr: Task[] = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.tasks)
+      ? data.tasks
+      : Array.isArray(data?.data)
+      ? data.data
+      : [];
 
-      const arr: Task[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.tasks)
-        ? data.tasks
-        : Array.isArray(data?.data)
-        ? data.data
-        : [];
+    setTasks(arr);
+  } catch (err) {
+    const axiosErr = err as AxiosError<{ message?: string }>;
+    console.error(err);
+    setError(
+      axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
+    );
+    if (axiosErr.response?.status === 401) onLogout();
+  } finally {
+    setLoading(false);
+  }
+}, [onLogout]);
 
-      setTasks(arr);
-    } catch (err) {
-      const axiosErr = err as AxiosError<{ message?: string }>;
-      console.error(err);
-      setError(
-        axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
-      );
-      if (axiosErr.response?.status === 401) onLogout();
-    } finally {
-      setLoading(false);
-    }
-  }, [onLogout]);
 
   useEffect(() => {
     fetchTasks();
