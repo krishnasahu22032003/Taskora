@@ -1,12 +1,12 @@
 import express from 'express'
-import { ChangePassword, GetCurrentUser, UpdateProfile, UsersignIn, UserSingUp } from '../controller/Usercontroller.js';
+import { ChangePassword, GetCurrentUser, UpdateProfile, UsersignIn, UserSignUp } from '../controller/Usercontroller.js';
 import authMiddleware from '../middleware/Auth.js';
 import { Logout } from '../controller/Usercontroller.js';
 const userRouter = express.Router();
 
 // public routes
  
-userRouter.post("/signup", UserSingUp)
+userRouter.post("/signup", UserSignUp)
 userRouter.post("/signin", UsersignIn)
 
 // private routes
