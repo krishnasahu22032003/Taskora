@@ -24,7 +24,7 @@ interface TaskItemProps {
 }
 
 
-const API_BASE = "http://localhost:5000/api/tasks";
+const API_BASE = "http://localhost:5000/api/Task";
 
 // helper to normalize completed value (handles boolean/number/string if it ever appears)
 const computeCompleted = (c: any): boolean => {

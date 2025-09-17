@@ -20,7 +20,7 @@ interface OutletContext {
   refreshTasks: () => void;
 }
 
-const API_BASE = 'http://localhost:5000/api/tasks';
+const API_BASE = 'http://localhost:5000/api/Task';
 const sortOptions = [
   { id: 'newest', label: 'Newest', icon: <SortDesc className="w-3 h-3" /> },
   { id: 'oldest', label: 'Oldest', icon: <SortAsc className="w-3 h-3" /> },
@@ -41,13 +41,13 @@ const PendingTasks: React.FC = () => {
 
   const handleDelete = useCallback(async (id: string | undefined) => {
     if (!id) return;
-    await fetch(`${API_BASE}/${id}/gp`, { method: 'DELETE', headers: getHeaders() });
+    await fetch(`${API_BASE}/${id}/Task`, { method: 'DELETE', headers: getHeaders() });
     refreshTasks();
   }, [refreshTasks]);
 
   const handleToggleComplete = useCallback(async (id: string | undefined, completed: boolean) => {
     if (!id) return;
-    await fetch(`${API_BASE}/${id}/gp`, {
+    await fetch(`${API_BASE}/${id}/Task`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ completed: completed ? 'Yes' : 'No' }),

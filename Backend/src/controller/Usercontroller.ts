@@ -1,7 +1,7 @@
 import { UserModel } from "../config/db.js";
 import { success, z } from "zod"
 import jwt from "jsonwebtoken";
-import JWT_USER_SECRET from "../config/config.js";
+import {JWT_USER_SECRET} from "../config/config.js";
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt"
 
@@ -15,14 +15,16 @@ export async function UserSingUp(req: Request, res: Response) {
   })
   const parsedata = requiredbody.safeParse(req.body)
   if (!parsedata.success) {
-    res.status(401).json({
-      message: "incorrect credentials"
-    })
+     return res.status(400).json({
+    success: false,
+    message: "Validation failed",
+    errors: parsedata.error.format(),
+  });
     return
   }
   const { username, email, password } = req.body
   if (!username || !email || !password) {
-    res.status(400).json({ success: false, Message: "All fields required" })
+  return res.status(400).json({ success: false, Message: "All fields required" })
   }
   if (await UserModel.findOne({ email })) {
     return res.status(409).json({ success: false, Message: "User with this email already exists" })

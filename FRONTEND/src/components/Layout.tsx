@@ -5,7 +5,6 @@ import { Circle, TrendingUp, Zap, Clock } from "lucide-react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import axios, { AxiosError } from "axios";
-import Cookies from "js-cookie";
 
 // Define Task type
 interface Task {
