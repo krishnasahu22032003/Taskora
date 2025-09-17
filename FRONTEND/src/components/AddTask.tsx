@@ -15,11 +15,20 @@ interface TaskModalProps {
   onLogout?: () => void;
 }
 
-const normalizePriority = (p: string): 'low' | 'medium' | 'high' => {
+// Capitalize priority for backend enum
+const normalizePriority = (p: string): 'Low' | 'Medium' | 'High' => {
   const formatted = p.toLowerCase();
-  if (formatted === 'low') return 'low';
-  if (formatted === 'medium') return 'medium';
-  return 'high';
+  if (formatted === 'low') return 'Low';
+  if (formatted === 'medium') return 'Medium';
+  return 'High';
+};
+
+// Helper to normalize completed from backend
+const normalizeCompleted = (c: any): boolean => {
+  if (typeof c === 'boolean') return c;
+  if (typeof c === 'string') return c.toLowerCase() === 'yes';
+  if (typeof c === 'number') return c === 1;
+  return false;
 };
 
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSave, onLogout }) => {
@@ -36,7 +45,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
     if (taskToEdit) {
       setTaskData({
         ...taskToEdit,
-        completed: taskToEdit.completed === true,
+        completed: normalizeCompleted(taskToEdit.completed),
         id: taskToEdit.id,
       });
     } else {
@@ -74,7 +83,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
       try {
         const payload: Task = {
           ...taskData,
-          completed: taskData.completed ? 'Yes' : 'No',
+          dueDate: new Date(taskData.dueDate).toISOString(),
+          completed: taskData.completed, // boolean for frontend
           id: taskData.id,
         };
 
@@ -84,18 +94,29 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
         const resp = await fetch(url, {
           method: isEdit ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          credentials: 'include', // send httpOnly cookie
+          body: JSON.stringify({
+            ...payload,
+            completed: payload.completed ? 'Yes' : 'No', // convert to backend
+          }),
+          credentials: 'include',
         });
 
         if (!resp.ok) {
           if (resp.status === 401) return onLogout?.();
-          const err = await resp.json();
+          let err;
+          try {
+            err = await resp.json();
+          } catch {
+            err = { message: resp.statusText };
+          }
           throw new Error(err.message || 'Failed to save task');
         }
 
         const saved = await resp.json();
-        onSave?.(saved);
+        onSave?.({
+          ...saved,
+          completed: normalizeCompleted(saved.completed),
+        });
         onClose();
       } catch (err: any) {
         console.error(err);
@@ -110,7 +131,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm bg-black/20 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/20 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="bg-white border border-purple-100 rounded-xl max-w-md w-full shadow-lg p-6 relative animate-fadeIn">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -172,9 +193,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
                 onChange={handleChange}
                 className={`${baseControlClasses} ${priorityStyles[taskData.priority]}`}
               >
-                <option value="low">Low</option>
-  <option value="medium">Medium</option>
-  <option value="high">High</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
               </select>
             </div>
             <div>
@@ -203,8 +224,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
                 <input
                   type="radio"
                   name="completed"
-                  value="Yes"
-                  checked={taskData.completed === true}
+                  checked={taskData.completed}
                   onChange={() => setTaskData(prev => ({ ...prev, completed: true }))}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                 />
@@ -214,8 +234,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdit, onSa
                 <input
                   type="radio"
                   name="completed"
-                  value="No"
-                  checked={taskData.completed === false}
+                  checked={!taskData.completed}
                   onChange={() => setTaskData(prev => ({ ...prev, completed: false }))}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                 />

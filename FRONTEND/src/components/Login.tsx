@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+// src/components/Login.tsx
+import { useState } from "react";
+import type { ChangeEvent, FormEvent} from "react"
 import axios from "axios";
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -27,24 +28,28 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
   const navigate = useNavigate();
   const API_URL = "http://localhost:5000";
 
-  
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!rememberMe) {
-      toast.error('You must enable "Remember Me" to login.');
-      return;
-    }
-
     setLoading(true);
+
     try {
       const { data } = await axios.post(`${API_URL}/api/user/signin`, formData, {
-        withCredentials: true,
+        withCredentials: true, // sends httpOnly cookie automatically
       });
 
-      if (!data.success || !data.user) throw new Error(data.message || "Login failed.");
+      // Validate response
+      if (!data?.success || !data?.user) {
+        throw new Error(data?.message || "Unexpected response from server");
+      }
 
-      // Call App's handler to store user in cookie & update state
+      // Optional token persistence
+      if (rememberMe && data.token) {
+        localStorage.setItem("token", data.token);
+      } else {
+        localStorage.removeItem("token");
+      }
+
+      // Call parent handler
       onSubmit?.(data.user);
 
       setFormData(INITIAL_FORM);
@@ -78,7 +83,6 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-pink-900 flex flex-col relative overflow-hidden">
-      {/* Decorative blobs */}
       <div className="pointer-events-none absolute -left-20 -top-24 w-72 h-72 rounded-full bg-gradient-to-tr from-fuchsia-500 via-purple-500 to-indigo-400 opacity-20 blur-3xl animate-tilt"></div>
       <div className="pointer-events-none absolute -right-20 -bottom-24 w-72 h-72 rounded-full bg-gradient-to-br from-emerald-400 to-teal-300 opacity-12 blur-3xl"></div>
 
@@ -130,7 +134,6 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
                 className="h-4 w-4 text-purple-500 focus:ring-purple-400 border-gray-300 rounded"
-                required
               />
               <label htmlFor="rememberMe" className="ml-2 block text-sm text-white/90">
                 Remember Me

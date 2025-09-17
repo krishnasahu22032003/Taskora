@@ -1,3 +1,4 @@
+// src/components/Layout.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { ReactNode } from "react";
 import { Outlet } from "react-router-dom";
@@ -5,15 +6,7 @@ import { Circle, TrendingUp, Zap, Clock } from "lucide-react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import axios, { AxiosError } from "axios";
-
-// Define Task type
-interface Task {
-  _id?: string;
-  id?: string;
-  title: string;
-  completed?: boolean | number | string;
-  createdAt?: string;
-}
+import type { FrontendTask } from "../types/types";
 
 // Props type
 interface LayoutProps {
@@ -34,69 +27,80 @@ interface StatCardProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<FrontendTask[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
- const fetchTasks = useCallback(async () => {
-  setLoading(true);
-  setError(null);
+  // Fetch tasks from backend
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  try {
-    // Remove reading token from JS entirely
-    const { data } = await axios.get("http://localhost:5000/api/Task/Task", {
-      withCredentials: true, // <--- this sends the httpOnly cookie automatically
-    });
+    try {
+      const { data } = await axios.get("http://localhost:5000/api/Task/Task", {
+        withCredentials: true,
+      });
 
-    const arr: Task[] = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.tasks)
-      ? data.tasks
-      : Array.isArray(data?.data)
-      ? data.data
-      : [];
+   const arr: FrontendTask[] = (
+  Array.isArray(data)
+    ? data
+    : Array.isArray(data?.tasks)
+    ? data.tasks
+    : Array.isArray(data?.data)
+    ? data.data
+    : []
+).map(
+  (t: Partial<FrontendTask> & { _id?: string; completed?: boolean | string | number }) => {
+    let completed = false;
 
-    setTasks(arr);
-  } catch (err) {
-    const axiosErr = err as AxiosError<{ message?: string }>;
-    console.error(err);
-    setError(
-      axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
-    );
-    if (axiosErr.response?.status === 401) onLogout();
-  } finally {
-    setLoading(false);
+    // Explicit type checks
+    if (t.completed === true) {
+      completed = true;
+    } else if (typeof t.completed === "number" && t.completed === 1) {
+      completed = true;
+    } else if (typeof t.completed === "string") {
+      completed = (t.completed as string).toLowerCase() === "yes";
+    }
+
+    return {
+      ...t,
+      completed,
+      id: t.id ?? t._id, // normalize id
+    } as FrontendTask; // ensure TS sees this as FrontendTask
   }
-}, [onLogout]);
+);
 
+
+      setTasks(arr);
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      console.error(err);
+      setError(
+        axiosErr.response?.data?.message ?? axiosErr.message ?? "Could not load tasks."
+      );
+      if (axiosErr.response?.status === 401) onLogout();
+    } finally {
+      setLoading(false);
+    }
+  }, [onLogout]);
 
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Compute task statistics
   const stats = useMemo(() => {
-    const completedTasks = tasks.filter(
-      (t) =>
-        t.completed === true ||
-        t.completed === 1 ||
-        (typeof t.completed === "string" &&
-          t.completed.toLowerCase() === "yes")
-    ).length;
-
+    const completedTasks = tasks.filter((t) => t.completed).length;
     const totalCount = tasks.length;
     const pendingCount = totalCount - completedTasks;
     const completionPercentage = totalCount
       ? Math.round((completedTasks / totalCount) * 100)
       : 0;
 
-    return {
-      totalCount,
-      completedTasks,
-      pendingCount,
-      completionPercentage,
-    };
+    return { totalCount, completedTasks, pendingCount, completionPercentage };
   }, [tasks]);
 
+  // Stat card component
   const StatCard: React.FC<StatCardProps> = ({ title, value, icon }) => (
     <div className="p-2 sm:p-3 rounded-xl bg-white shadow-sm border border-purple-100 hover:shadow-md transition-all duration-300 hover:border-purple-200 group">
       <div className="flex items-center gap-2">
@@ -107,7 +111,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
           <p className="text-lg sm:text-xl font-bold bg-gradient-to-r from-fuchsia-500 to-purple-600 bg-clip-text text-transparent">
             {value}
           </p>
-          <p className="text-xs text-gray-500 font-medium ">{title}</p>
+          <p className="text-xs text-gray-500 font-medium">{title}</p>
         </div>
       </div>
     </div>
@@ -212,7 +216,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
               <div className="space-y-2 sm:space-y-3">
                 {tasks.slice(0, 3).map((task) => (
                   <div
-                    key={task._id || task.id}
+                    key={task.id}
                     className="flex items-center justify-between p-2 sm:p-3 hover:bg-purple-50/50 rounded-lg transition-colors duration-200 border border-transparent hover:border-purple-100"
                   >
                     <div className="flex-1 min-w-0">

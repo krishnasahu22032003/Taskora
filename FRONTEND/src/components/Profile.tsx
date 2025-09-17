@@ -1,14 +1,21 @@
 import { useState, useEffect } from "react";
-import type { ChangeEvent, FormEvent,Dispatch, SetStateAction } from "react"
+import type{ChangeEvent, FormEvent, Dispatch, SetStateAction} from "react"
 import axios from "axios";
 import { Lock, ChevronLeft, Shield, LogOut, Save, UserCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import type { User } from "../types/types";
-import { INPUT_WRAPPER, FULL_BUTTON, SECTION_WRAPPER, BACK_BUTTON, DANGER_BTN, personalFields, securityFields } from '../assets/dummy';
+import {
+  INPUT_WRAPPER,
+  FULL_BUTTON,
+  SECTION_WRAPPER,
+  BACK_BUTTON,
+  DANGER_BTN,
+  personalFields,
+  securityFields,
+} from "../assets/dummy";
 
-// Constants & Dummy Data
 const API_URL = "http://localhost:5000";
 
 interface ProfileData {
@@ -25,7 +32,7 @@ interface PasswordsData {
 }
 
 interface ProfileProps {
- user: User | null;
+  user: User | null;
   setCurrentUser: Dispatch<SetStateAction<User | null>>;
   onLogout: () => void;
 }
@@ -35,31 +42,45 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
   const [passwords, setPasswords] = useState<PasswordsData>({ current: "", new: "", confirm: "" });
   const navigate = useNavigate();
 
+  // Load current user
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
     axios
       .get(`${API_URL}/api/user/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => {
-        if (data.success) setProfile({ name: data.user.name, email: data.user.email });
+        if (data.success) setProfile({ name: data.user.username, email: data.user.email });
         else toast.error(data.message);
       })
       .catch(() => toast.error("Unable to load profile."));
   }, []);
 
+  // Handle profile change
+  const handleProfileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfile((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle password change
+  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswords((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Save profile
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.put(
         `${API_URL}/api/user/profile`,
-        { name: profile.name, email: profile.email },
+        { username: profile.name, email: profile.email }, // backend expects username
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
-        setCurrentUser?.((prev:any) => ({
+        setCurrentUser((prev: any) => ({
           ...prev,
-          name: profile.name,
+          username: profile.name,
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=random`,
         }));
         toast.success("Profile updated");
@@ -72,6 +93,7 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
     }
   };
 
+  // Change password
   const changePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
@@ -81,7 +103,7 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
       const token = localStorage.getItem("token");
       const { data } = await axios.put(
         `${API_URL}/api/user/password`,
-        { currentPassword: passwords.current, newPassword: passwords.new },
+        { currentpassword: passwords.current, newpassword: passwords.new }, // backend expects these keys
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
@@ -96,21 +118,23 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
     }
   };
 
-const handleProfileChange = (e: ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
-  setProfile((prev: ProfileData) => ({ ...prev, [name]: value }));
-};
-const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
-  setPasswords((prev: PasswordsData) => ({ ...prev, [name]: value }));
-};
+  // Logout
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_URL}/api/user/logout`);
+      localStorage.removeItem("token");
+      onLogout();
+    } catch {
+      toast.error("Logout failed");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <ToastContainer position="top-center" autoClose={3000} />
       <div className="max-w-4xl mx-auto p-6">
         <button onClick={() => navigate(-1)} className={BACK_BUTTON}>
-          <ChevronLeft className="w-5 h-5 mr-1" />
-          Back to Dashboard
+          <ChevronLeft className="w-5 h-5 mr-1" /> Back to Dashboard
         </button>
 
         <div className="flex items-center gap-4 mb-8">
@@ -124,6 +148,7 @@ const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
+          {/* Personal Info */}
           <section className={SECTION_WRAPPER}>
             <div className="flex items-center gap-2 mb-6">
               <UserCircle className="text-purple-500 w-5 h-5" />
@@ -135,6 +160,7 @@ const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
                   <Icon className="text-purple-500 w-5 h-5 mr-2" />
                   <input
                     type={type}
+                    name={name}
                     placeholder={placeholder}
                     value={profile[name]}
                     onChange={handleProfileChange}
@@ -149,6 +175,7 @@ const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
             </form>
           </section>
 
+          {/* Security */}
           <section className={SECTION_WRAPPER}>
             <div className="flex items-center gap-2 mb-6">
               <Shield className="text-purple-500 w-5 h-5" />
@@ -160,6 +187,7 @@ const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
                   <Lock className="text-purple-500 w-5 h-5 mr-2" />
                   <input
                     type="password"
+                    name={name}
                     placeholder={placeholder}
                     value={passwords[name]}
                     onChange={handlePasswordChange}
@@ -172,11 +200,12 @@ const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
                 <Shield className="w-4 h-4" /> Change Password
               </button>
 
+              {/* Danger Zone */}
               <div className="mt-8 pt-6 border-t border-purple-100">
                 <h3 className="text-red-600 font-semibold mb-4 flex items-center gap-2">
                   <LogOut className="w-4 h-4" /> Danger Zone
                 </h3>
-                <button onClick={onLogout} className={DANGER_BTN}>
+                <button onClick={handleLogout} className={DANGER_BTN}>
                   Logout
                 </button>
               </div>
@@ -187,4 +216,5 @@ const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     </div>
   );
 };
+
 export default Profile;

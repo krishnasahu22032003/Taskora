@@ -1,3 +1,4 @@
+// src/pages/CompletedTasks.tsx
 import { useState, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { CheckCircle2, Filter } from "lucide-react";
@@ -5,12 +6,18 @@ import TaskItem from "../components/TaskItem";
 import { SORT_OPTIONS, CT_CLASSES } from "../assets/dummy";
 import type { FrontendTask } from "../types/types";
 
-
-
 interface OutletContext {
   tasks: FrontendTask[];
   refreshTasks: () => void;
 }
+
+// Helper to normalize completed values
+const computeCompleted = (c: any): boolean => {
+  if (typeof c === "boolean") return c;
+  if (typeof c === "number") return c === 1;
+  if (typeof c === "string") return c.toLowerCase() === "yes";
+  return false;
+};
 
 const CompletedTasks: React.FC = () => {
   const { tasks, refreshTasks } = useOutletContext<OutletContext>();
@@ -18,9 +25,7 @@ const CompletedTasks: React.FC = () => {
 
   const sortedCompletedTasks = useMemo(() => {
     return tasks
-      .filter(task => task.completed
-      
-      )
+      .filter(task => computeCompleted(task.completed)) // normalize completed to boolean
       .sort((a, b) => {
         switch (sortBy) {
           case "newest":
@@ -67,7 +72,7 @@ const CompletedTasks: React.FC = () => {
             >
               {SORT_OPTIONS.map(opt => (
                 <option key={opt.id} value={opt.id}>
-                  {opt.label} {opt.id === 'newest' ? 'First' : ''}
+                  {opt.label}
                 </option>
               ))}
             </select>
@@ -105,7 +110,7 @@ const CompletedTasks: React.FC = () => {
         ) : (
           sortedCompletedTasks.map(task => (
             <TaskItem
-              key={task.id || task.id}
+              key={task.id}
               task={task}
               onRefresh={refreshTasks}
               showCompleteCheckbox={false}

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Zap, Settings, ChevronDown, LogOut } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 interface NavbarProps {
   user: {
@@ -20,8 +20,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
   const handleLogout = () => {
     setMenuOpen(false);
-    onLogout(); // call the logout prop
+    onLogout();
   };
+
+  // Close menu if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuref.current && !menuref.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200 font-sans">
@@ -36,8 +47,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
              shadow-lg shadow-purple-500/30
              transition-all duration-300 ease-out 
              hover:scale-110 hover:shadow-2xl hover:shadow-indigo-500/40
-             hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500
-             group">
+             hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500">
             <Zap className="w-6 h-6 text-white" />
             <div className="absolute -bottom-1 -middle-1 bg-white rounded-full w-3 h-3 shadow-md animate-ping" />
           </div>
@@ -74,10 +84,12 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 )}
                 <div className="absolute -bottom-0.5 bg-green-200 rounded-full animate-pulse -right-0.5 w-3 h-3 border-2 border-white" />
               </div>
+
               <div className="text-left hidden md:block">
                 <p className="text-sm text-gray-800 font-medium">{user.name}</p>
                 <p className="text-xs text-gray-500 font-normal">{user.email}</p>
               </div>
+
               <ChevronDown
                 className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${
                   menuOpen ? "rotate-180" : ""
@@ -93,7 +105,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                       setMenuOpen(false);
                       navigate("/profile");
                     }}
-                    className="w-full px-4 py-2.5 text-left hover:bg-purple-50 text-sm text-gray-700 transition-colors flex items-center gap-2 group"
+                    className="w-full px-4 py-2.5 text-left hover:bg-purple-50 text-sm text-gray-700 transition-colors flex items-center gap-2"
                     role="menuitem"
                   >
                     <Settings className="w-4 h-4 text-gray-700" />

@@ -1,5 +1,5 @@
-import { useState} from "react";
-import type{ ChangeEvent, FormEvent } from "react"
+import { useState } from "react";
+import type {ChangeEvent, FormEvent} from "react"
 import axios from "axios";
 import { UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -45,17 +45,19 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode, onSubmit }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
 
+  // Password regex matches backend: 8+ chars, uppercase, lowercase, number, special char
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
+
   const isUsernameValid = (v: string) => v.trim().length > 0;
   const isEmailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length >= 5 && v.length <= 50;
-  const isPasswordValid = (v: string) =>
-    /[a-z]/.test(v) && /[A-Z]/.test(v) && v.length >= 5 && v.length <= 50;
+  const isPasswordValid = (v: string) => passwordRegex.test(v);
 
   const validateAll = (data: SignUpForm) => {
     const e: Record<string, string> = {};
     if (!isUsernameValid(data.username)) e.username = "Username is required.";
     if (!isEmailValid(data.email)) e.email = "Email must be valid and 5–50 characters.";
     if (!isPasswordValid(data.password))
-      e.password = "Password must be 5–50 chars and include lowercase & uppercase.";
+      e.password = "Password must be 8+ chars, include uppercase, lowercase, number, and special char.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -72,7 +74,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode, onSubmit }) => {
         !isEmailValid(value) ? (copy.email = "Email must be valid and 5–50 chars.") : delete copy.email;
       } else if (name === "password") {
         !isPasswordValid(value)
-          ? (copy.password = "Password must be 5–50 chars and include lowercase & uppercase.")
+          ? (copy.password = "Password must be 8+ chars, include uppercase, lowercase, number, and special char.")
           : delete copy.password;
       }
       return copy;
@@ -80,7 +82,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode, onSubmit }) => {
   };
 
   const strengthLabel = (pw: string) => {
-    if (pw.length >= 12 && /[a-z]/.test(pw) && /[A-Z]/.test(pw)) return "Strong";
+    if (pw.length >= 12 && passwordRegex.test(pw)) return "Strong";
     if (pw.length >= 8) return "Medium";
     if (pw.length > 0) return "Weak";
     return "";
@@ -93,24 +95,29 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode, onSubmit }) => {
 
     setLoading(true);
     try {
+      // Signup request
       const { data } = await axios.post(`${API_URL}/api/user/signup`, formData, {
-        withCredentials: true,
+        withCredentials: true, // Important for cookies
       });
 
-      if (data?.success === false) {
+      if (!data.success) {
         setMessage({ text: data.message || "Signup failed", type: "error" });
         return;
       }
 
       // Auto-login after signup
-      const { data: loginData } = await axios.post(`${API_URL}/api/user/signin`, {
-        email: formData.email,
-        password: formData.password,
-      }, { withCredentials: true });
+      const { data: loginData } = await axios.post(
+        `${API_URL}/api/user/signin`,
+        { email: formData.email, password: formData.password },
+        { withCredentials: true }
+      );
 
-      if (!loginData.success || !loginData.user) throw new Error(loginData.message || "Login failed after signup");
+      if (!loginData.success || !loginData.user) {
+        setMessage({ text: loginData.message || "Login failed after signup", type: "error" });
+        return;
+      }
 
-      // Call App's handler to update cookies & state
+      // Pass user data to App state
       onSubmit?.(loginData.user);
 
       setFormData(INITIAL_FORM);
@@ -176,7 +183,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchMode, onSubmit }) => {
 
                 {name === "password" && (
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-300/80">
-                    <span>Password must be 5–50 chars and include lowercase & uppercase</span>
+                    <span>Password must be 8+ chars and include uppercase, lowercase, number & special char</span>
                     <span className="font-medium">{strengthLabel(String(formData.password ?? ""))}</span>
                   </div>
                 )}

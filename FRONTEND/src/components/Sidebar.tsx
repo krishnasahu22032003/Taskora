@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { Sparkles, Lightbulb, Menu, X } from "lucide-react";
 import TaskModal from "./AddTask";
@@ -10,7 +10,6 @@ import {
   TIP_CARD,
 } from "../assets/dummy";
 
-// Task type
 interface Task {
   _id?: string;
   id?: string;
@@ -18,30 +17,28 @@ interface Task {
   completed?: boolean | number | string;
 }
 
-// User type
 interface User {
   name?: string;
   email?: string;
   avatar?: string;
 }
 
-// Props type
 interface SidebarProps {
   user: User;
   tasks: Task[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
-  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
-  const [showModal, setShowModal] = useState<boolean>(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  const totalTasks = tasks?.length || 0;
-  const completedTasks = tasks?.filter((t) => t.completed).length || 0;
-  const productivity =
-    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const totalTasks = tasks?.length ?? 0;
+  const completedTasks =
+    tasks?.filter((t) => t.completed === true || t.completed === "Yes" || t.completed === 1).length ?? 0;
+  const productivity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const username = user?.name || "User";
-  const initial = username.charAt(0).toUpperCase();
+  const username = user?.name ?? "User";
+  const initial = useMemo(() => username.charAt(0).toUpperCase(), [username]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "auto";
@@ -66,11 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
             onClick={() => setMobileOpen(false)}
           >
             <span className={LINK_CLASSES.icon}>{icon}</span>
-            <span
-              className={`${isMobile ? "block" : "hidden lg:block"} ${
-                LINK_CLASSES.text
-              }`}
-            >
+            <span className={`${isMobile ? "block" : "hidden lg:block"} ${LINK_CLASSES.text}`}>
               {text}
             </span>
           </NavLink>
@@ -104,10 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
               <span className={PRODUCTIVITY_CARD.badge}>{productivity}%</span>
             </div>
             <div className={PRODUCTIVITY_CARD.barBg}>
-              <div
-                className={PRODUCTIVITY_CARD.barFg}
-                style={{ width: `${productivity}%` }}
-              />
+              <div className={PRODUCTIVITY_CARD.barFg} style={{ width: `${productivity}%` }} />
             </div>
           </div>
 
@@ -148,17 +138,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
             className={SIDEBAR_CLASSES.mobileDrawerBackdrop}
             onClick={() => setMobileOpen(false)}
           />
-
-          <div
-            className={SIDEBAR_CLASSES.mobileDrawer}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className={SIDEBAR_CLASSES.mobileDrawer} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 border-b pb-2">
               <h2 className="text-lg font-bold text-purple-600">Menu</h2>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="text-gray-700 hover:text-purple-600"
-              >
+              <button onClick={() => setMobileOpen(false)} className="text-gray-700 hover:text-purple-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -180,6 +163,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
         </div>
       )}
 
+      {/* Add Task Modal */}
       <TaskModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </>
   );

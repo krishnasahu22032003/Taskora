@@ -27,11 +27,20 @@ const isCompleted = (task: FrontendTask | Task): boolean => {
   return false;
 };
 
+// Normalize priority for backend
+const normalizePriority = (p: string): 'Low' | 'Medium' | 'High' => {
+  const lower = p.toLowerCase();
+  if (lower === 'low') return 'Low';
+  if (lower === 'medium') return 'Medium';
+  return 'High';
+};
+
 const Dashboard: React.FC = () => {
   const { tasks, refreshTasks } = useOutletContext<OutletContext>();
   const [filter, setFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState<boolean>(false);
   const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Stats
   const stats = useMemo(() => ({
@@ -46,7 +55,9 @@ const Dashboard: React.FC = () => {
   const filteredTasks = useMemo(() => tasks.filter(task => {
     const dueDate = new Date(task.dueDate || "");
     const today = new Date();
-    const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
+    const nextWeek = new Date(today); 
+    nextWeek.setDate(today.getDate() + 7);
+
     switch (filter) {
       case "today": return dueDate.toDateString() === today.toDateString();
       case "week": return dueDate >= today && dueDate <= nextWeek;
@@ -57,17 +68,29 @@ const Dashboard: React.FC = () => {
     }
   }), [tasks, filter]);
 
-  // Save handler
+  // Save handler (POST for new, PUT for update)
   const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
     try {
+      const payload: Task = {
+        ...taskData,
+        priority: normalizePriority(taskData.priority),
+        completed: taskData.completed ? 'Yes' : 'No',
+        dueDate: new Date(taskData.dueDate).toISOString(),
+      };
+
       if (taskData.id) {
-        await axios.put(`${API_BASE}/${taskData.id}/Task`, taskData);
+        await axios.put(`${API_BASE}/${taskData.id}/Task`, payload, { withCredentials: true });
+      } else {
+        await axios.post(`${API_BASE}/Task`, payload, { withCredentials: true });
       }
+
       refreshTasks();
       setShowModal(false);
       setSelectedTask(null);
-    } catch (error) {
-      console.error("Error saving task:", error);
+      setError(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.response?.data?.message || "Failed to save task");
     }
   }, [refreshTasks]);
 
@@ -160,6 +183,7 @@ const Dashboard: React.FC = () => {
         taskToEdit={selectedTask}
         onSave={handleTaskSave}
       />
+      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
     </div>
   );
 };

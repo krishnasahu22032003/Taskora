@@ -24,11 +24,12 @@ export interface BaseTask {
 export interface Task extends BaseTask {
   id?: string;
   _id?: string;
-  completed: "Yes" | "No";
+  completed: boolean | string 
 }
 
 // Frontend representation (UI state)
 export interface FrontendTask extends BaseTask {
-  id?: string;          // use string id (no null) to avoid type issues
-  completed: boolean; // boolean in UI
+  id?: string; 
+  _id?: string;         // use string id (no null) to avoid type issues
+  completed: boolean 
 }

@@ -61,6 +61,16 @@ export const backendDummy: BackendTask[] = [
 ]
 
 // FRONTEND DUMMY DATA
+// FRONTEND DUMMY DATA (normalized completed and priority)
+export const frontendDummy: FrontendTask[] = backendDummy.map((task, index) => ({
+  ...task,
+  completed: task.completed === true || task.completed === "Yes",
+  priority:
+    task.priority === "Low" || task.priority === "Medium" || task.priority === "High"
+      ? task.priority
+      : "Low", // default to "Low" if backend gives unexpected value
+  id: `task-${index + 1}`,
+}))
 
 // assets/formConstants.ts
 export const baseControlClasses =

@@ -13,20 +13,21 @@ interface Subtask {
 }
 
 interface TaskItemProps {
-  task: FrontendTask; // use FrontendTask (UI shape)
+  task: FrontendTask;
   onRefresh?: () => void;
   onLogout?: () => void;
   showCompleteCheckbox?: boolean;
-  onEdit?: () => void;
-    onDelete?: () => void | Promise<void>;
-  onToggleComplete?: () => void | Promise<void>;
-    className?: string; // <-- add this
-}
+  className?: string;
 
+  // Parent callbacks
+  onEdit?: () => void;
+  onDelete?: () => void | Promise<void>;
+  onToggleComplete?: () => void | Promise<void>;
+}
 
 const API_BASE = "http://localhost:5000/api/Task";
 
-// helper to normalize completed value (handles boolean/number/string if it ever appears)
+// Normalize completed value (boolean/number/string -> boolean)
 const computeCompleted = (c: any): boolean => {
   if (typeof c === "boolean") return c;
   if (typeof c === "number") return c === 1;
@@ -34,14 +35,22 @@ const computeCompleted = (c: any): boolean => {
   return false;
 };
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showCompleteCheckbox = true }) => {
+const TaskItem: React.FC<TaskItemProps> = ({
+  task,
+  onRefresh,
+  onLogout,
+  showCompleteCheckbox = true,
+  onEdit,
+  onDelete,
+  onToggleComplete,
+}) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [isCompleted, setIsCompleted] = useState<boolean>(computeCompleted((task as any).completed));
+  const [isCompleted, setIsCompleted] = useState<boolean>(computeCompleted(task.completed));
   const [showEditModal, setShowEditModal] = useState(false);
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks || []);
 
   useEffect(() => {
-    setIsCompleted(computeCompleted((task as any).completed));
+    setIsCompleted(computeCompleted(task.completed));
     setSubtasks(task.subtasks || []);
   }, [task]);
 
@@ -53,14 +62,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
 
   const borderColor = isCompleted ? "border-green-500" : getPriorityColor(task.priority).split(" ")[0];
 
-  // Toggle completion (frontend boolean -> backend "Yes"/"No")
+  // Toggle completion
   const handleComplete = async () => {
     const newStatus = isCompleted ? "No" : "Yes";
     try {
-      // use task.id (FrontendTask) for API id
       if (!task.id) throw new Error("Task id missing");
-      await axios.put(`${API_BASE}/${task.id}/gp`, { completed: newStatus }, { headers: getAuthHeaders() });
+      await axios.put(`${API_BASE}/${task.id}/Task`, { completed: newStatus }, { headers: getAuthHeaders() });
       setIsCompleted(!isCompleted);
+      onToggleComplete?.();
       onRefresh?.();
     } catch (err: any) {
       console.error(err);
@@ -70,14 +79,15 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
 
   const handleAction = (action: string) => {
     setShowMenu(false);
-    if (action === "edit") setShowEditModal(true);
+    if (action === "edit") onEdit?.();
     if (action === "delete") handleDelete();
   };
 
   const handleDelete = async () => {
     try {
       if (!task.id) throw new Error("Task id missing");
-      await axios.delete(`${API_BASE}/${task.id}/gp`, { headers: getAuthHeaders() });
+      await axios.delete(`${API_BASE}/${task.id}/Task`, { headers: getAuthHeaders() });
+      onDelete?.();
       onRefresh?.();
     } catch (err: any) {
       console.error(err);
@@ -85,7 +95,6 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
     }
   };
 
-  // `updatedTask` is FrontendTask; when we send to backend convert completed boolean -> "Yes"/"No"
   const handleSave = async (updatedTask: FrontendTask) => {
     try {
       if (!task.id) throw new Error("Task id missing");
@@ -95,9 +104,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
         priority: updatedTask.priority,
         dueDate: updatedTask.dueDate,
         completed: updatedTask.completed ? "Yes" : "No",
-        subtasks: updatedTask.subtasks || []
+        subtasks: updatedTask.subtasks || [],
       };
-      await axios.put(`${API_BASE}/${task.id}/gp`, payload, { headers: getAuthHeaders() });
+      await axios.put(`${API_BASE}/${task.id}/Task`, payload, { headers: getAuthHeaders() });
       setShowEditModal(false);
       onRefresh?.();
     } catch (err: any) {
@@ -131,7 +140,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
               </h3>
               <span className={`${TI_CLASSES.priorityBadge} ${getPriorityBadgeColor(task.priority)}`}>{task.priority}</span>
             </div>
+
             {task.description && <p className={TI_CLASSES.description}>{task.description}</p>}
+
             {subtasks.length > 0 && (
               <div className={TI_CLASSES.subtasksContainer}>
                 <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
@@ -147,10 +158,22 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
                       <input
                         type="checkbox"
                         checked={st.completed}
-                        onChange={() => setSubtasks(prev => prev.map((s, idx) => idx === i ? { ...s, completed: !s.completed } : s))}
+                        onChange={() =>
+                          setSubtasks(prev =>
+                            prev.map((s, idx) => (idx === i ? { ...s, completed: !s.completed } : s))
+                          )
+                        }
                         className="w-4 h-4 text-purple-500 rounded border-gray-300 focus:ring-purple-500"
                       />
-                      <span className={`text-sm truncate ${st.completed ? "text-gray-400 line-through" : "text-gray-600 group-hover/subtask:text-purple-700"} transition-colors duration-200`}>{st.title}</span>
+                      <span
+                        className={`text-sm truncate ${
+                          st.completed
+                            ? "text-gray-400 line-through"
+                            : "text-gray-600 group-hover/subtask:text-purple-700"
+                        } transition-colors duration-200`}
+                      >
+                        {st.title}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -172,7 +195,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
                     onClick={() => handleAction(opt.action)}
                     className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors duration-200"
                   >
-                    {opt.icon}{opt.label}
+                    {opt.icon}
+                    {opt.label}
                   </button>
                 ))}
               </div>
@@ -192,12 +216,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onRefresh, onLogout, showComp
         </div>
       </div>
 
-      <TaskModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        taskToEdit={task}
-        onSave={handleSave}
-      />
+      <TaskModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} taskToEdit={task} onSave={handleSave} />
     </>
   );
 };
