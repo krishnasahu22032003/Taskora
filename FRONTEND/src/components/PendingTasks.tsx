@@ -15,6 +15,7 @@ interface FrontendTask {
   subtasks?: { title: string; completed: boolean }[];
   createdAt?: string;
 }
+
 interface OutletContext {
   tasks: FrontendTask[];
   refreshTasks: () => void;
@@ -33,15 +34,13 @@ const PendingTasks: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
 
-  const getHeaders = () => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('No auth token found');
-    return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-  };
-
   const handleDelete = useCallback(async (id: string | undefined) => {
     if (!id) return;
-    await fetch(`${API_BASE}/${id}/Task`, { method: 'DELETE', headers: getHeaders() });
+    await fetch(`${API_BASE}/${id}/Task`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // ✅ send cookie
+    });
     refreshTasks();
   }, [refreshTasks]);
 
@@ -49,16 +48,15 @@ const PendingTasks: React.FC = () => {
     if (!id) return;
     await fetch(`${API_BASE}/${id}/Task`, {
       method: 'PUT',
-      headers: getHeaders(),
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // ✅ send cookie
       body: JSON.stringify({ completed: completed ? 'Yes' : 'No' }),
     });
     refreshTasks();
   }, [refreshTasks]);
 
   const sortedPendingTasks = useMemo(() => {
-    const filtered = tasks.filter(
-      (t) => !t.completed 
-    );
+    const filtered = tasks.filter((t) => !t.completed);
     return filtered.sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
       if (sortBy === 'oldest') return new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime();
@@ -122,10 +120,7 @@ const PendingTasks: React.FC = () => {
               task={t}
               showCompleteCheckbox
               onDelete={() => handleDelete(t.id)}
-              onToggleComplete={() => handleToggleComplete(
-                t.id ,
-                !t.completed
-              )}
+              onToggleComplete={() => handleToggleComplete(t.id, !t.completed)}
               onEdit={() => { setSelectedTask(t); setShowModal(true); }}
               onRefresh={refreshTasks}
             />

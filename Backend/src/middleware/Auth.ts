@@ -15,21 +15,13 @@ export default async function authMiddleware(
   next: NextFunction
 ) {
   try {
-
-    let token = req.cookies?.auth_token;
-
-
-    if (!token) {
-      const authHeader = req.headers["authorization"] as string | undefined;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.split(" ")[1];
-      }
-    }
+    // ✅ Only accept httpOnly cookie
+    const token = req.cookies?.auth_token;
 
     if (!token) {
       return res
         .status(401)
-        .json({ success: false, message: "No token provided" });
+        .json({ success: false, message: "Authentication required" });
     }
 
     const payload = jwt.verify(token, JWT_SECRET) as JwtPayloadWithId;
@@ -41,7 +33,7 @@ export default async function authMiddleware(
         .json({ success: false, message: "User not found" });
     }
 
-    req.user = user;
+    req.user = user; // ✅ user is now available in controllers
     next();
   } catch (err) {
     console.error("JWT verification failed", err);

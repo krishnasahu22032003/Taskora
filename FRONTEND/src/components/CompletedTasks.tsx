@@ -11,7 +11,7 @@ interface OutletContext {
   refreshTasks: () => void;
 }
 
-// Helper to normalize completed values
+// Normalize completed values (backend → frontend boolean)
 const computeCompleted = (c: any): boolean => {
   if (typeof c === "boolean") return c;
   if (typeof c === "number") return c === 1;
@@ -25,7 +25,7 @@ const CompletedTasks: React.FC = () => {
 
   const sortedCompletedTasks = useMemo(() => {
     return tasks
-      .filter(task => computeCompleted(task.completed)) // normalize completed to boolean
+      .filter(task => computeCompleted(task.completed)) // normalize completed
       .sort((a, b) => {
         switch (sortBy) {
           case "newest":
@@ -34,7 +34,10 @@ const CompletedTasks: React.FC = () => {
             return new Date(a.createdAt || "").getTime() - new Date(b.createdAt || "").getTime();
           case "priority": {
             const order: Record<string, number> = { high: 3, medium: 2, low: 1 };
-            return (order[b.priority?.toLowerCase() || "low"] || 0) - (order[a.priority?.toLowerCase() || "low"] || 0);
+            return (
+              (order[b.priority?.toLowerCase() || "low"] || 0) -
+              (order[a.priority?.toLowerCase() || "low"] || 0)
+            );
           }
           default:
             return 0;
@@ -52,7 +55,8 @@ const CompletedTasks: React.FC = () => {
             <span className="truncate">Completed Tasks</span>
           </h1>
           <p className={CT_CLASSES.subtitle}>
-            {sortedCompletedTasks.length} task{sortedCompletedTasks.length !== 1 && "s"} marked as complete
+            {sortedCompletedTasks.length} task
+            {sortedCompletedTasks.length !== 1 && "s"} marked as complete
           </p>
         </div>
 
@@ -85,7 +89,7 @@ const CompletedTasks: React.FC = () => {
                   onClick={() => setSortBy(opt.id)}
                   className={[
                     CT_CLASSES.btnBase,
-                    sortBy === opt.id ? CT_CLASSES.btnActive : CT_CLASSES.btnInactive
+                    sortBy === opt.id ? CT_CLASSES.btnActive : CT_CLASSES.btnInactive,
                   ].join(" ")}
                 >
                   {opt.icon}
@@ -111,7 +115,7 @@ const CompletedTasks: React.FC = () => {
           sortedCompletedTasks.map(task => (
             <TaskItem
               key={task.id}
-              task={task}
+              task={{ ...task, completed: computeCompleted(task.completed) }} // ✅ enforce boolean
               onRefresh={refreshTasks}
               showCompleteCheckbox={false}
               className="opacity-90 hover:opacity-100 transition-opacity text-sm md:text-base"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type{ChangeEvent, FormEvent, Dispatch, SetStateAction} from "react"
+import type { ChangeEvent, FormEvent, Dispatch, SetStateAction } from "react";
 import axios from "axios";
 import { Lock, ChevronLeft, Shield, LogOut, Save, UserCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -44,10 +44,8 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
 
   // Load current user
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
     axios
-      .get(`${API_URL}/api/user/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .get(`${API_URL}/api/user/me`, { withCredentials: true }) // ✅ send cookie
       .then(({ data }) => {
         if (data.success) setProfile({ name: data.user.username, email: data.user.email });
         else toast.error(data.message);
@@ -55,27 +53,23 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
       .catch(() => toast.error("Unable to load profile."));
   }, []);
 
-  // Handle profile change
   const handleProfileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle password change
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswords((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Save profile
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
       const { data } = await axios.put(
         `${API_URL}/api/user/profile`,
         { username: profile.name, email: profile.email }, // backend expects username
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true } // ✅ send cookie
       );
       if (data.success) {
         setCurrentUser((prev: any) => ({
@@ -93,18 +87,15 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
     }
   };
 
-  // Change password
   const changePassword = async (e: FormEvent) => {
     e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      return toast.error("Passwords do not match");
-    }
+    if (passwords.new !== passwords.confirm) return toast.error("Passwords do not match");
+
     try {
-      const token = localStorage.getItem("token");
       const { data } = await axios.put(
         `${API_URL}/api/user/password`,
-        { currentpassword: passwords.current, newpassword: passwords.new }, // backend expects these keys
-        { headers: { Authorization: `Bearer ${token}` } }
+        { currentpassword: passwords.current, newpassword: passwords.new },
+        { withCredentials: true } // ✅ send cookie
       );
       if (data.success) {
         toast.success("Password changed");
@@ -118,11 +109,9 @@ const Profile: React.FC<ProfileProps> = ({ setCurrentUser, onLogout }) => {
     }
   };
 
-  // Logout
   const handleLogout = async () => {
     try {
-      await axios.post(`${API_URL}/api/user/logout`);
-      localStorage.removeItem("token");
+      await axios.post(`${API_URL}/api/user/logout`, {}, { withCredentials: true }); // ✅ send cookie
       onLogout();
     } catch {
       toast.error("Logout failed");

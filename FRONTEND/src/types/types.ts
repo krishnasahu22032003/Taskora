@@ -14,7 +14,7 @@ export interface User {
 export interface BaseTask {
   title: string;
   description: string;
-  dueDate: string;
+  dueDate?: string;
   priority: "Low" | "Medium" | "High";
   subtasks?: SubTask[];
   createdAt?: string;   // <-- ADDED: optional createdAt (ISO string)

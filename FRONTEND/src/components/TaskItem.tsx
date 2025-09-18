@@ -18,8 +18,6 @@ interface TaskItemProps {
   onLogout?: () => void;
   showCompleteCheckbox?: boolean;
   className?: string;
-
-  // Parent callbacks
   onEdit?: () => void;
   onDelete?: () => void | Promise<void>;
   onToggleComplete?: () => void | Promise<void>;
@@ -27,8 +25,7 @@ interface TaskItemProps {
 
 const API_BASE = "http://localhost:5000/api/Task";
 
-// Normalize completed value (boolean/number/string -> boolean)
-const computeCompleted = (c: any): boolean => {
+const computeCompleted = (c: boolean | string | number | undefined): boolean => {
   if (typeof c === "boolean") return c;
   if (typeof c === "number") return c === 1;
   if (typeof c === "string") return c.toLowerCase() === "yes";
@@ -54,22 +51,31 @@ const TaskItem: React.FC<TaskItemProps> = ({
     setSubtasks(task.subtasks || []);
   }, [task]);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("No auth token found");
-    return { Authorization: `Bearer ${token}` };
-  };
-
   const borderColor = isCompleted ? "border-green-500" : getPriorityColor(task.priority).split(" ")[0];
 
   // Toggle completion
   const handleComplete = async () => {
+    if (!task.id) return;
     const newStatus = isCompleted ? "No" : "Yes";
     try {
-      if (!task.id) throw new Error("Task id missing");
-      await axios.put(`${API_BASE}/${task.id}/Task`, { completed: newStatus }, { headers: getAuthHeaders() });
+      await axios.put(`${API_BASE}/${task.id}/Task`, { completed: newStatus }, { withCredentials: true });
       setIsCompleted(!isCompleted);
       onToggleComplete?.();
+      onRefresh?.();
+    } catch (err: any) {
+      console.error(err);
+      if (err?.response?.status === 401) onLogout?.();
+    }
+  };
+
+  // Toggle subtask completion and update backend
+  const handleSubtaskToggle = async (index: number) => {
+    const updatedSubtasks = subtasks.map((st, i) => (i === index ? { ...st, completed: !st.completed } : st));
+    setSubtasks(updatedSubtasks);
+    if (!task.id) return;
+
+    try {
+      await axios.put(`${API_BASE}/${task.id}/Task`, { subtasks: updatedSubtasks }, { withCredentials: true });
       onRefresh?.();
     } catch (err: any) {
       console.error(err);
@@ -84,9 +90,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleDelete = async () => {
+    if (!task.id) return;
     try {
-      if (!task.id) throw new Error("Task id missing");
-      await axios.delete(`${API_BASE}/${task.id}/Task`, { headers: getAuthHeaders() });
+      await axios.delete(`${API_BASE}/${task.id}/Task`, { withCredentials: true });
       onDelete?.();
       onRefresh?.();
     } catch (err: any) {
@@ -96,17 +102,17 @@ const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleSave = async (updatedTask: FrontendTask) => {
+    if (!task.id) return;
+    const payload = {
+      title: updatedTask.title,
+      description: updatedTask.description,
+      priority: updatedTask.priority,
+      dueDate: updatedTask.dueDate,
+      completed: updatedTask.completed ? "Yes" : "No",
+      subtasks: updatedTask.subtasks || [],
+    };
     try {
-      if (!task.id) throw new Error("Task id missing");
-      const payload = {
-        title: updatedTask.title,
-        description: updatedTask.description,
-        priority: updatedTask.priority,
-        dueDate: updatedTask.dueDate,
-        completed: updatedTask.completed ? "Yes" : "No",
-        subtasks: updatedTask.subtasks || [],
-      };
-      await axios.put(`${API_BASE}/${task.id}/Task`, payload, { headers: getAuthHeaders() });
+      await axios.put(`${API_BASE}/${task.id}/Task`, payload, { withCredentials: true });
       setShowEditModal(false);
       onRefresh?.();
     } catch (err: any) {
@@ -123,6 +129,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
         <div className={TI_CLASSES.leftContainer}>
           {showCompleteCheckbox && (
             <button
+              aria-label={isCompleted ? "Mark task as incomplete" : "Mark task as complete"}
               onClick={handleComplete}
               className={`${TI_CLASSES.completeBtn} ${isCompleted ? "text-green-500" : "text-gray-300"}`}
             >
@@ -157,12 +164,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
                     <div key={i} className="flex items-center gap-2 group/subtask">
                       <input
                         type="checkbox"
+                        aria-label={`Mark subtask "${st.title}" as ${st.completed ? "incomplete" : "complete"}`}
                         checked={st.completed}
-                        onChange={() =>
-                          setSubtasks(prev =>
-                            prev.map((s, idx) => (idx === i ? { ...s, completed: !s.completed } : s))
-                          )
-                        }
+                        onChange={() => handleSubtaskToggle(i)}
                         className="w-4 h-4 text-purple-500 rounded border-gray-300 focus:ring-purple-500"
                       />
                       <span
@@ -184,7 +188,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
         <div className={TI_CLASSES.rightContainer}>
           <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)} className={TI_CLASSES.menuButton}>
+            <button
+              aria-label="Task actions menu"
+              onClick={() => setShowMenu(!showMenu)}
+              className={TI_CLASSES.menuButton}
+            >
               <MoreVertical size={16} className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             {showMenu && (
@@ -216,7 +224,12 @@ const TaskItem: React.FC<TaskItemProps> = ({
         </div>
       </div>
 
-      <TaskModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} taskToEdit={task} onSave={handleSave} />
+      <TaskModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        taskToEdit={task}
+        onSave={handleSave}
+      />
     </>
   );
 };

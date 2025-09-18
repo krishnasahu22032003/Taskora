@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import { useState, useMemo, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Plus, Filter, Home as HomeIcon, Calendar as CalendarIcon } from "lucide-react";
@@ -12,23 +13,21 @@ import {
   TABS_WRAPPER, TAB_BASE, TAB_ACTIVE, TAB_INACTIVE
 } from '../assets/dummy';
 
-// API Base
-const API_BASE = "http://localhost:5000/api/Task";
+const API_BASE = "http://localhost:5000/api/Task/Task";
 
 interface OutletContext {
   tasks: FrontendTask[];
   refreshTasks: () => void;
 }
 
-// ✅ Helper: unify completed checks
 const isCompleted = (task: FrontendTask | Task): boolean => {
   if (typeof task.completed === "boolean") return task.completed;
   if (typeof task.completed === "string") return task.completed.toLowerCase() === "yes";
   return false;
 };
 
-// Normalize priority for backend
-const normalizePriority = (p: string): 'Low' | 'Medium' | 'High' => {
+const normalizePriority = (p?: string): 'Low' | 'Medium' | 'High' => {
+  if (!p) return 'Medium';
   const lower = p.toLowerCase();
   if (lower === 'low') return 'Low';
   if (lower === 'medium') return 'Medium';
@@ -42,7 +41,6 @@ const Dashboard: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Stats
   const stats = useMemo(() => ({
     total: tasks.length,
     lowPriority: tasks.filter(t => t.priority === "Low").length,
@@ -51,11 +49,11 @@ const Dashboard: React.FC = () => {
     completed: tasks.filter(isCompleted).length,
   }), [tasks]);
 
-  // Filtering
   const filteredTasks = useMemo(() => tasks.filter(task => {
-    const dueDate = new Date(task.dueDate || "");
+    if (!task.dueDate) return true; // skip filtering if no due date
+    const dueDate = new Date(task.dueDate);
     const today = new Date();
-    const nextWeek = new Date(today); 
+    const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
 
     switch (filter) {
@@ -67,32 +65,31 @@ const Dashboard: React.FC = () => {
       default: return true;
     }
   }), [tasks, filter]);
+const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
+  try {
+    const payload: Task = {
+      ...taskData,
+      priority: normalizePriority(taskData.priority),
+      completed: taskData.completed ? "Yes" : "No",
+      dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : "",
+    };
 
-  // Save handler (POST for new, PUT for update)
-  const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
-    try {
-      const payload: Task = {
-        ...taskData,
-        priority: normalizePriority(taskData.priority),
-        completed: taskData.completed ? 'Yes' : 'No',
-        dueDate: new Date(taskData.dueDate).toISOString(),
-      };
-
-      if (taskData.id) {
-        await axios.put(`${API_BASE}/${taskData.id}/Task`, payload, { withCredentials: true });
-      } else {
-        await axios.post(`${API_BASE}/Task`, payload, { withCredentials: true });
-      }
-
-      refreshTasks();
-      setShowModal(false);
-      setSelectedTask(null);
-      setError(null);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to save task");
+    if (taskData.id) {
+      await axios.put(`${API_BASE}/${taskData.id}`, payload, { withCredentials: true });
+    } else {
+      await axios.post(API_BASE, payload, { withCredentials: true });
     }
-  }, [refreshTasks]);
+
+    refreshTasks();
+    setShowModal(false);
+    setSelectedTask(null);
+    setError(null);
+  } catch (err: any) {
+    console.error(err);
+    setError(err?.response?.data?.message || "Failed to save task");
+  }
+}, [refreshTasks]);
+
 
   return (
     <div className={WRAPPER}>
@@ -105,7 +102,11 @@ const Dashboard: React.FC = () => {
           </h1>
           <p className="text-sm text-gray-500 mt-1 ml-7 truncate">Manage your tasks efficiently</p>
         </div>
-        <button onClick={() => setShowModal(true)} className={ADD_BUTTON}>
+        <button
+          onClick={() => { setShowModal(true); setSelectedTask(null); }}
+          className={ADD_BUTTON}
+          aria-label="Add new task"
+        >
           <Plus size={18} /> Add New Task
         </button>
       </div>
@@ -135,12 +136,22 @@ const Dashboard: React.FC = () => {
             <Filter className="w-5 h-5 text-purple-500 shrink-0" />
             <h2 className="text-base md:text-lg font-semibold text-gray-800 truncate">{FILTER_LABELS[filter as keyof typeof FILTER_LABELS]}</h2>
           </div>
-          <select value={filter} onChange={e => setFilter(e.target.value)} className={SELECT_CLASSES}>
+          <select
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className={SELECT_CLASSES}
+            aria-label="Select task filter"
+          >
             {FILTER_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
           </select>
           <div className={TABS_WRAPPER}>
             {FILTER_OPTIONS.map(opt => (
-              <button key={opt} onClick={() => setFilter(opt)} className={`${TAB_BASE} ${filter === opt ? TAB_ACTIVE : TAB_INACTIVE}`}>
+              <button
+                key={opt}
+                onClick={() => setFilter(opt)}
+                className={`${TAB_BASE} ${filter === opt ? TAB_ACTIVE : TAB_INACTIVE}`}
+                aria-label={`Filter tasks by ${opt}`}
+              >
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
               </button>
             ))}
@@ -154,7 +165,13 @@ const Dashboard: React.FC = () => {
               <div className={EMPTY_STATE.iconWrapper}><CalendarIcon className="w-8 h-8 text-purple-500" /></div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">No tasks found</h3>
               <p className="text-sm text-gray-500 mb-4">{filter === "all" ? "Create your first task to get started" : "No tasks match this filter"}</p>
-              <button onClick={() => setShowModal(true)} className={EMPTY_STATE.btn}>Add New Task</button>
+              <button
+                onClick={() => { setShowModal(true); setSelectedTask(null); }}
+                className={EMPTY_STATE.btn}
+                aria-label="Add new task"
+              >
+                Add New Task
+              </button>
             </div>
           ) : (
             filteredTasks.map(task => (
@@ -170,7 +187,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Add Task (Desktop) */}
-        <div onClick={() => setShowModal(true)} className="hidden md:flex items-center justify-center p-4 border-2 border-dashed border-purple-200 rounded-xl hover:border-purple-400 bg-purple-50/50 cursor-pointer transition-colors">
+        <div
+          onClick={() => { setShowModal(true); setSelectedTask(null); }}
+          className="hidden md:flex items-center justify-center p-4 border-2 border-dashed border-purple-200 rounded-xl hover:border-purple-400 bg-purple-50/50 cursor-pointer transition-colors"
+          aria-label="Add new task"
+        >
           <Plus className="w-5 h-5 text-purple-500 mr-2" />
           <span className="text-gray-600 font-medium">Add New Task</span>
         </div>

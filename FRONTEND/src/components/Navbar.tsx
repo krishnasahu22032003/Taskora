@@ -34,6 +34,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Keyboard accessibility for dropdown
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleMenuToggle();
+    }
+    if (e.key === "Escape") {
+      setMenuOpen(false);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200 font-sans">
       <div className="flex items-center justify-between px-4 py-3 md:px-6 max-w-7xl mx-auto">
@@ -49,7 +60,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
              hover:scale-110 hover:shadow-2xl hover:shadow-indigo-500/40
              hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500">
             <Zap className="w-6 h-6 text-white" />
-            <div className="absolute -bottom-1 -middle-1 bg-white rounded-full w-3 h-3 shadow-md animate-ping" />
+            <div className="absolute -bottom-1 -right-1 bg-white rounded-full w-3 h-3 shadow-md animate-ping" />
           </div>
           <span className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent tracking-wide">
             Taskora
@@ -68,6 +79,8 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           <div ref={menuref} className="relative">
             <button
               onClick={handleMenuToggle}
+              onKeyDown={handleKeyDown}
+              tabIndex={0}
               className="flex items-center gap-2 px-3 py-2 rounded-full cursor-pointer hover:bg-purple-50 transition-colors duration-300 border border-transparent hover:border-purple-200"
             >
               <div className="relative">

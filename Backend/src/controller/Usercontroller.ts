@@ -68,7 +68,7 @@ export async function UsersignIn(req: Request, res: Response) {
       success: true,
       message: "Signin successful",
       user: { id: user._id, username: user.username, email: user.email },
-      token,
+    
     });
   } catch (error) {
     console.error("Signin error:", error);
@@ -91,7 +91,7 @@ export async function GetCurrentUser(req: Request, res: Response) {
 
 // update profile
 export async function UpdateProfile(req: Request, res: Response) {
-  const updateSchema = z.object({ username: z.string().min(1), email: z.string().email() });
+  const updateSchema = z.object({ username: z.string().min(1).optional(), email: z.string().email().optional() });
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Unauthorized" });
     const parseResult = updateSchema.safeParse(req.body);

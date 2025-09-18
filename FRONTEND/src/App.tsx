@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate, Outlet } from "react-router-dom";
 import axios from "axios";
 
@@ -20,11 +20,9 @@ const App: React.FC = () => {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   // Fetch current user from backend
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/api/user/me`, {
-        withCredentials: true,
-      });
+      const { data } = await axios.get(`${API_URL}/api/user/me`, { withCredentials: true });
       if (data.success) setCurrentUser(data.user);
       else setCurrentUser(null);
     } catch (err) {
@@ -32,24 +30,19 @@ const App: React.FC = () => {
     } finally {
       setLoadingAuth(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCurrentUser();
-  }, []);
+  }, [fetchCurrentUser]);
 
-  // After login, fetch current user
   const handleLogin = async () => {
     await fetchCurrentUser();
     navigate("/dashboard", { replace: true });
   };
 
-  // After signup, redirect to login
-  const handleSignUp = () => {
-    navigate("/login");
-  };
+  const handleSignUp = () => navigate("/login");
 
-  // Logout
   const handleLogout = async () => {
     try {
       await axios.post(`${API_URL}/api/user/logout`, {}, { withCredentials: true });
@@ -66,7 +59,6 @@ const App: React.FC = () => {
     </Layout>
   );
 
-  // SHOW LOADING SPINNER WHILE CHECKING AUTH
   if (loadingAuth)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -76,20 +68,9 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
-      />
-
-      <Route
-        path="/signup"
-        element={<SignUp onSubmit={handleSignUp} onSwitchMode={() => navigate("/login")} />}
-      />
-
-      <Route
-        path="/login"
-        element={<Login onSubmit={handleLogin} onSwitchMode={() => navigate("/signup")} />}
-      />
+      <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+      <Route path="/signup" element={<SignUp onSubmit={handleSignUp} onSwitchMode={() => navigate("/login")} />} />
+      <Route path="/login" element={<Login onSubmit={handleLogin} onSwitchMode={() => navigate("/signup")} />} />
 
       {/* Protected routes */}
       <Route element={currentUser ? <ProtectedLayout /> : <Navigate to="/login" replace />}>

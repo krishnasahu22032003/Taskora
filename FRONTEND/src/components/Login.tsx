@@ -1,6 +1,6 @@
 // src/components/Login.tsx
 import { useState } from "react";
-import type { ChangeEvent, FormEvent} from "react"
+import type { ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +23,6 @@ const INITIAL_FORM: LoginForm = { email: "", password: "" };
 const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginForm>(INITIAL_FORM);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const API_URL = "http://localhost:5000";
@@ -37,16 +36,8 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
         withCredentials: true, // sends httpOnly cookie automatically
       });
 
-      // Validate response
       if (!data?.success || !data?.user) {
         throw new Error(data?.message || "Unexpected response from server");
-      }
-
-      // Optional token persistence
-      if (rememberMe && data.token) {
-        localStorage.setItem("token", data.token);
-      } else {
-        localStorage.removeItem("token");
       }
 
       // Call parent handler
@@ -54,11 +45,20 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
 
       setFormData(INITIAL_FORM);
       toast.success("Login successful! Redirecting...");
-      setTimeout(() => navigate("/"), 800);
+      setTimeout(() => navigate("/dashboard"), 800);
     } catch (err: unknown) {
       let msg = "Login failed.";
-      if (axios.isAxiosError(err)) msg = err.response?.data?.message || err.message;
-      else if (err instanceof Error) msg = err.message;
+      if (axios.isAxiosError(err)) {
+        if (err.response?.data?.errors) {
+          // Handle Zod validation errors
+          const errors = err.response.data.errors;
+          msg = Object.values(errors).join(", ");
+        } else {
+          msg = err.response?.data?.message || err.message;
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -104,7 +104,10 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {fields.map(({ name, type, placeholder, icon: Icon, isPassword }) => (
-              <div key={name} className="flex items-center gap-3 bg-white/6 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-3 focus-within:shadow-[0_8px_32px_rgba(124,58,237,0.06)]">
+              <div
+                key={name}
+                className="flex items-center gap-3 bg-white/6 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-3 focus-within:shadow-[0_8px_32px_rgba(124,58,237,0.06)]"
+              >
                 <Icon className="w-5 h-5 text-slate-300/80" />
                 <input
                   type={type}
@@ -126,19 +129,6 @@ const Login: React.FC<LoginProps> = ({ onSubmit, onSwitchMode }) => {
                 )}
               </div>
             ))}
-
-            <div className="flex items-center">
-              <input
-                id="rememberMe"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={() => setRememberMe(!rememberMe)}
-                className="h-4 w-4 text-purple-500 focus:ring-purple-400 border-gray-300 rounded"
-              />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-white/90">
-                Remember Me
-              </label>
-            </div>
 
             <button
               type="submit"

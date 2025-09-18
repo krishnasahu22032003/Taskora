@@ -32,13 +32,15 @@ const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  const totalTasks = tasks?.length ?? 0;
-  const completedTasks =
-    tasks?.filter((t) => t.completed === true || t.completed === "Yes" || t.completed === 1).length ?? 0;
-  const productivity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
   const username = user?.name ?? "User";
   const initial = useMemo(() => username.charAt(0).toUpperCase(), [username]);
+
+  const productivity = useMemo(() => {
+    const totalTasks = tasks?.length ?? 0;
+    const completedTasks =
+      tasks?.filter((t) => t.completed === true || t.completed === "Yes" || t.completed === 1).length ?? 0;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  }, [tasks]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "auto";
@@ -141,7 +143,11 @@ const Sidebar: React.FC<SidebarProps> = ({ user, tasks }) => {
           <div className={SIDEBAR_CLASSES.mobileDrawer} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 border-b pb-2">
               <h2 className="text-lg font-bold text-purple-600">Menu</h2>
-              <button onClick={() => setMobileOpen(false)} className="text-gray-700 hover:text-purple-600">
+              <button
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className="text-gray-700 hover:text-purple-600"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
