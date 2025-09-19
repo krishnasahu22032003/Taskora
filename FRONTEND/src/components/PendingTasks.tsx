@@ -28,29 +28,18 @@ const sortOptions = [
   { id: 'priority', label: 'Priority', icon: <Award className="w-3 h-3" /> },
 ];
 
-const PendingTasks: React.FC = () => {
+export const PendingTasks: React.FC = () => {
   const { tasks = [], refreshTasks } = useOutletContext<OutletContext>();
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
-  const [showModal, setShowModal] = useState<boolean>(false);
 
   const handleDelete = useCallback(async (id: string | undefined) => {
     if (!id) return;
     await fetch(`${API_BASE}/${id}/Task`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // ✅ send cookie
-    });
-    refreshTasks();
-  }, [refreshTasks]);
-
-  const handleToggleComplete = useCallback(async (id: string | undefined, completed: boolean) => {
-    if (!id) return;
-    await fetch(`${API_BASE}/${id}/Task`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // ✅ send cookie
-      body: JSON.stringify({ completed: completed ? 'Yes' : 'No' }),
+      credentials: 'include',
     });
     refreshTasks();
   }, [refreshTasks]);
@@ -67,6 +56,7 @@ const PendingTasks: React.FC = () => {
 
   return (
     <div className={layoutClasses.container}>
+      {/* Header & Sort UI */}
       <div className={layoutClasses.headerWrapper}>
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
@@ -95,7 +85,9 @@ const PendingTasks: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className={layoutClasses.addBox} onClick={() => setShowModal(true)}>
+
+      {/* Add New Task Button */}
+      <div className={layoutClasses.addBox} onClick={() => setModalMode("add")}>
         <div className="flex items-center justify-center gap-3 text-gray-500 group-hover:text-purple-600 transition-colors">
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
             <Plus size={18} className="text-purple-500" />
@@ -103,6 +95,8 @@ const PendingTasks: React.FC = () => {
           <span className="font-medium">Add New Task</span>
         </div>
       </div>
+
+      {/* Tasks List */}
       <div className="space-y-4">
         {sortedPendingTasks.length === 0 ? (
           <div className={layoutClasses.emptyState}>
@@ -110,7 +104,7 @@ const PendingTasks: React.FC = () => {
               <div className={layoutClasses.emptyIconBg}><Clock className="w-8 h-8 text-purple-500" /></div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">All caught up!</h3>
               <p className="text-sm text-gray-500 mb-4">No pending tasks - great work!</p>
-              <button onClick={() => setShowModal(true)} className={layoutClasses.emptyBtn}>Create New Task</button>
+              <button onClick={() => setModalMode("add")} className={layoutClasses.emptyBtn}>Create New Task</button>
             </div>
           </div>
         ) : (
@@ -120,20 +114,20 @@ const PendingTasks: React.FC = () => {
               task={t}
               showCompleteCheckbox
               onDelete={() => handleDelete(t.id)}
-              onToggleComplete={() => handleToggleComplete(t.id, !t.completed)}
-              onEdit={() => { setSelectedTask(t); setShowModal(true); }}
+              onEdit={() => { setSelectedTask(t); setModalMode("edit"); }}
               onRefresh={refreshTasks}
             />
           ))
         )}
       </div>
+
+      {/* Task Modal */}
       <TaskModal
-        isOpen={!!selectedTask || showModal}
-        onClose={() => { setShowModal(false); setSelectedTask(null); refreshTasks(); }}
-        taskToEdit={selectedTask ?? null}
+        isOpen={modalMode !== null}
+        onClose={() => { setModalMode(null); setSelectedTask(null); refreshTasks(); }}
+        taskToEdit={modalMode === "edit" ? selectedTask : null}
       />
     </div>
   );
 };
-
-export default PendingTasks;
+export default PendingTasks

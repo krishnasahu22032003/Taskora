@@ -1,4 +1,3 @@
-// src/pages/CompletedTasks.tsx
 import { useState, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { CheckCircle2, Filter } from "lucide-react";
@@ -25,7 +24,7 @@ const CompletedTasks: React.FC = () => {
 
   const sortedCompletedTasks = useMemo(() => {
     return tasks
-      .filter(task => computeCompleted(task.completed)) // normalize completed
+      .filter(task => computeCompleted(task.completed)) // enforce boolean
       .sort((a, b) => {
         switch (sortBy) {
           case "newest":
@@ -87,10 +86,7 @@ const CompletedTasks: React.FC = () => {
                 <button
                   key={opt.id}
                   onClick={() => setSortBy(opt.id)}
-                  className={[
-                    CT_CLASSES.btnBase,
-                    sortBy === opt.id ? CT_CLASSES.btnActive : CT_CLASSES.btnInactive,
-                  ].join(" ")}
+                  className={[CT_CLASSES.btnBase, sortBy === opt.id ? CT_CLASSES.btnActive : CT_CLASSES.btnInactive].join(" ")}
                 >
                   {opt.icon}
                   {opt.label}
@@ -115,10 +111,10 @@ const CompletedTasks: React.FC = () => {
           sortedCompletedTasks.map(task => (
             <TaskItem
               key={task.id}
-              task={{ ...task, completed: computeCompleted(task.completed) }} // ✅ enforce boolean
-              onRefresh={refreshTasks}
-              showCompleteCheckbox={false}
-              className="opacity-90 hover:opacity-100 transition-opacity text-sm md:text-base"
+              task={{ ...task, completed: computeCompleted(task.completed) }}
+              showCompleteCheckbox={false} // ✅ hide checkbox for completed tasks
+              onDelete={() => { /* optional delete handler */ refreshTasks(); }}
+              onRefresh={refreshTasks} // refresh parent after any action
             />
           ))
         )}

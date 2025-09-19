@@ -1,4 +1,3 @@
-// src/pages/Dashboard.tsx
 import { useState, useMemo, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Plus, Filter, Home as HomeIcon, Calendar as CalendarIcon } from "lucide-react";
@@ -13,18 +12,10 @@ import {
   TABS_WRAPPER, TAB_BASE, TAB_ACTIVE, TAB_INACTIVE
 } from '../assets/dummy';
 
-const API_BASE = "http://localhost:5000/api/Task/Task";
-
 interface OutletContext {
   tasks: FrontendTask[];
   refreshTasks: () => void;
 }
-
-const isCompleted = (task: FrontendTask | Task): boolean => {
-  if (typeof task.completed === "boolean") return task.completed;
-  if (typeof task.completed === "string") return task.completed.toLowerCase() === "yes";
-  return false;
-};
 
 const normalizePriority = (p?: string): 'Low' | 'Medium' | 'High' => {
   if (!p) return 'Medium';
@@ -34,6 +25,14 @@ const normalizePriority = (p?: string): 'Low' | 'Medium' | 'High' => {
   return 'High';
 };
 
+const isCompleted = (task: FrontendTask | Task): boolean => {
+  if (typeof task.completed === "boolean") return task.completed;
+  if (typeof task.completed === "string") return task.completed.toLowerCase() === "yes";
+  return false;
+};
+
+const API_BASE = "http://localhost:5000/api/Task";
+
 const Dashboard: React.FC = () => {
   const { tasks, refreshTasks } = useOutletContext<OutletContext>();
   const [filter, setFilter] = useState<string>("all");
@@ -41,16 +40,19 @@ const Dashboard: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<FrontendTask | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const stats = useMemo(() => ({
-    total: tasks.length,
-    lowPriority: tasks.filter(t => t.priority === "Low").length,
-    mediumPriority: tasks.filter(t => t.priority === "Medium").length,
-    highPriority: tasks.filter(t => t.priority === "High").length,
-    completed: tasks.filter(isCompleted).length,
-  }), [tasks]);
+  // Map MongoDB _id -> id
+  const mappedTasks = useMemo(() => tasks.map(t => ({ ...t, id: t._id })), [tasks]);
 
-  const filteredTasks = useMemo(() => tasks.filter(task => {
-    if (!task.dueDate) return true; // skip filtering if no due date
+  const stats = useMemo(() => ({
+    total: mappedTasks.length,
+    lowPriority: mappedTasks.filter(t => t.priority === "Low").length,
+    mediumPriority: mappedTasks.filter(t => t.priority === "Medium").length,
+    highPriority: mappedTasks.filter(t => t.priority === "High").length,
+    completed: mappedTasks.filter(isCompleted).length,
+  }), [mappedTasks]);
+
+  const filteredTasks = useMemo(() => mappedTasks.filter(task => {
+    if (!task.dueDate) return true;
     const dueDate = new Date(task.dueDate);
     const today = new Date();
     const nextWeek = new Date(today);
@@ -64,32 +66,48 @@ const Dashboard: React.FC = () => {
       case "low": return task.priority === "Low";
       default: return true;
     }
-  }), [tasks, filter]);
-const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
-  try {
-    const payload: Task = {
-      ...taskData,
-      priority: normalizePriority(taskData.priority),
-      completed: taskData.completed ? "Yes" : "No",
-      dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : "",
-    };
+  }), [mappedTasks, filter]);
 
-    if (taskData.id) {
-      await axios.put(`${API_BASE}/${taskData.id}`, payload, { withCredentials: true });
-    } else {
-      await axios.post(API_BASE, payload, { withCredentials: true });
+  const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
+    try {
+      const payload: Task = {
+        ...taskData,
+        priority: normalizePriority(taskData.priority),
+        completed: taskData.completed ? "Yes" : "No",
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : undefined,
+      };
+
+      if (taskData.id) {
+      await axios.put(`${API_BASE}/${taskData.id}/Task/`, payload, { withCredentials: true });
+      } else {
+        await axios.post(`${API_BASE}/Task`, payload, { withCredentials: true });
+      }
+
+      await refreshTasks();
+      setShowModal(false);
+      setSelectedTask(null);
+      setError(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.response?.data?.message || "Failed to save task");
     }
+  }, [refreshTasks]);
 
-    refreshTasks();
+  const openModalForNew = () => {
+    setSelectedTask(null);
+    setShowModal(true);
+  };
+
+  const openModalForEdit = (task: FrontendTask) => {
+    setSelectedTask(task);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
     setShowModal(false);
     setSelectedTask(null);
     setError(null);
-  } catch (err: any) {
-    console.error(err);
-    setError(err?.response?.data?.message || "Failed to save task");
-  }
-}, [refreshTasks]);
-
+  };
 
   return (
     <div className={WRAPPER}>
@@ -102,11 +120,7 @@ const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
           </h1>
           <p className="text-sm text-gray-500 mt-1 ml-7 truncate">Manage your tasks efficiently</p>
         </div>
-        <button
-          onClick={() => { setShowModal(true); setSelectedTask(null); }}
-          className={ADD_BUTTON}
-          aria-label="Add new task"
-        >
+        <button onClick={openModalForNew} className={ADD_BUTTON}>
           <Plus size={18} /> Add New Task
         </button>
       </div>
@@ -130,80 +144,55 @@ const handleTaskSave = useCallback(async (taskData: FrontendTask) => {
 
       {/* Tasks */}
       <div className="space-y-6">
-        {/* Filter */}
         <div className={FILTER_WRAPPER}>
           <div className="flex items-center gap-2 min-w-0">
             <Filter className="w-5 h-5 text-purple-500 shrink-0" />
             <h2 className="text-base md:text-lg font-semibold text-gray-800 truncate">{FILTER_LABELS[filter as keyof typeof FILTER_LABELS]}</h2>
           </div>
-          <select
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-            className={SELECT_CLASSES}
-            aria-label="Select task filter"
-          >
+          <select value={filter} onChange={e => setFilter(e.target.value)} className={SELECT_CLASSES}>
             {FILTER_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
           </select>
           <div className={TABS_WRAPPER}>
             {FILTER_OPTIONS.map(opt => (
-              <button
-                key={opt}
-                onClick={() => setFilter(opt)}
-                className={`${TAB_BASE} ${filter === opt ? TAB_ACTIVE : TAB_INACTIVE}`}
-                aria-label={`Filter tasks by ${opt}`}
-              >
+              <button key={opt} onClick={() => setFilter(opt)} className={`${TAB_BASE} ${filter === opt ? TAB_ACTIVE : TAB_INACTIVE}`}>
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Task List */}
         <div className="space-y-4">
           {filteredTasks.length === 0 ? (
             <div className={EMPTY_STATE.wrapper}>
               <div className={EMPTY_STATE.iconWrapper}><CalendarIcon className="w-8 h-8 text-purple-500" /></div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">No tasks found</h3>
               <p className="text-sm text-gray-500 mb-4">{filter === "all" ? "Create your first task to get started" : "No tasks match this filter"}</p>
-              <button
-                onClick={() => { setShowModal(true); setSelectedTask(null); }}
-                className={EMPTY_STATE.btn}
-                aria-label="Add new task"
-              >
-                Add New Task
-              </button>
+              <button onClick={openModalForNew} className={EMPTY_STATE.btn}>Add New Task</button>
             </div>
-          ) : (
-            filteredTasks.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onRefresh={refreshTasks}
-                showCompleteCheckbox
-                onEdit={() => { setSelectedTask(task); setShowModal(true); }}
-              />
-            ))
-          )}
+          ) : filteredTasks.map(task => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onRefresh={refreshTasks}
+              showCompleteCheckbox
+              onEdit={() => openModalForEdit(task)}
+            />
+          ))}
         </div>
 
-        {/* Add Task (Desktop) */}
-        <div
-          onClick={() => { setShowModal(true); setSelectedTask(null); }}
-          className="hidden md:flex items-center justify-center p-4 border-2 border-dashed border-purple-200 rounded-xl hover:border-purple-400 bg-purple-50/50 cursor-pointer transition-colors"
-          aria-label="Add new task"
-        >
+        <div onClick={openModalForNew} className="hidden md:flex items-center justify-center p-4 border-2 border-dashed border-purple-200 rounded-xl hover:border-purple-400 bg-purple-50/50 cursor-pointer transition-colors">
           <Plus className="w-5 h-5 text-purple-500 mr-2" />
           <span className="text-gray-600 font-medium">Add New Task</span>
         </div>
       </div>
 
-      {/* Modal */}
       <TaskModal
-        isOpen={showModal || !!selectedTask}
-        onClose={() => { setShowModal(false); setSelectedTask(null); }}
+        isOpen={showModal}
         taskToEdit={selectedTask}
+        onClose={closeModal}
         onSave={handleTaskSave}
       />
+
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
     </div>
   );

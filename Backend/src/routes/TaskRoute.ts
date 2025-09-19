@@ -7,7 +7,7 @@ taskrouter.route('/Task')
 .get(authMiddleware,getTask)
 .post(authMiddleware,createTask)
 
-taskrouter.route('/:id/Task')
+taskrouter.route('/:id/Task/')
 .get(authMiddleware,getTaskbyId)
 .put(authMiddleware,updateTask)
 .delete(authMiddleware,deleteTask)
