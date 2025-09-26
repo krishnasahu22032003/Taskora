@@ -1,13 +1,13 @@
 # Taskora 🚀
 
-![Taskora Screenshots](/screenshots/Taskora%20screenshot.png)  
+![Taskora Screenshots](./Screenshots/Taskora%20screenshot.png)  
 *Experience Taskora – a sleek, modern full-stack task management application.*
 
 Taskora is a full-stack task management application designed to help users efficiently manage, track, and complete their daily tasks. With a responsive, modern interface and a robust backend, Taskora offers a seamless, secure, and productive task management experience.
 
 ---
 ## Frontend
-See [frontend/README.md](Frontend/README.md) for setup instructions and details.
+See [frontend/README.md](FRONTED/README.md) for setup instructions and details.
 
 ## Backend
 See [backend/README.md](Backend/README.md) for setup instructions and details.
