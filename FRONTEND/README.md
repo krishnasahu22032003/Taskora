@@ -1,16 +1,94 @@
-# React + Vite
+# Taskora - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+This folder contains the **frontend** of Taskora, a full-stack task management application. Built with **React**, **Tailwind CSS**, and **Lucide Icons**, the frontend provides a modern, responsive, and user-friendly interface for managing tasks efficiently.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Table of Contents
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [Features](#features)  
+- [Technologies Used](#technologies-used)  
+- [Folder Structure](#folder-structure)  
+- [Installation](#installation)  
+- [Usage](#usage)  
+- [Contact](#contact)  
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+
+- Add, edit, and delete tasks  
+- Mark tasks as completed or pending  
+- Filter and sort tasks  
+- Responsive and modern interface with Tailwind CSS  
+- Easy navigation with React Router  
+- Interactive UI icons with Lucide Icons  
+- Notifications using React Toastify  
+- Handles API calls to the backend via Axios  
+
+---
+
+## Technologies Used
+
+- **React** - Component-based frontend library  
+- **Tailwind CSS** - Utility-first CSS framework for styling  
+- **React Router DOM** - Frontend routing and navigation  
+- **Lucide Icons** - Interactive UI icons  
+- **React Toastify** - Notification system  
+- **Axios** - API request handling  
+- **Date-fns** - Date formatting and manipulation  
+
+---
+
+## Folder Structure
+
+```plaintext
+frontend/
+├── public/            # Static assets (images, favicon, etc.)
+├── src/               # Main React application code
+│   ├── components/    # Reusable UI components
+│   ├── pages/         # Page components
+│   ├── context/       # React context for state management
+│   ├── services/      # API request handlers
+│   ├── styles/        # Tailwind configuration and custom styles
+│   └── main.jsx       # App entry point
+├── package.json       # Frontend dependencies and scripts
+└── README.md          # Frontend documentation
+
+```
+# Installation
+
+1. Navigate to the frontend folder:
+
+ cd frontend
+
+2. Install dependencies:
+
+npm install
+
+3. Start the development server:
+
+npm run dev
+
+4. Open your browser and visit:
+
+http://localhost:5173
+
+The URL may vary depending on the port displayed in your terminal.
+
+# Usage
+
+Register or log in to your account
+Add new tasks and categorize them as pending or completed
+Edit or delete tasks as needed
+Filter and sort tasks using the available options
+Navigate smoothly between pages using React Router
+
+# Contact
+
+For any queries or suggestions, reach out to:
+Krishna Sahu
+📧 Email: krishna.sahu.work@gmail.com
+
+### Taskora Frontend – A modern, interactive, and fully responsive interface designed to make task management effortless.
