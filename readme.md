@@ -10,7 +10,7 @@ Taskora is a full-stack task management application designed to help users effic
 See [FRONTEND/README.md](Frontend/README.md) for setup instructions and details.
 
 ## Backend
-See [Backend/README.md](Backend/README.md) for setup instructions and details.
+See [Backend/readme.md](Backend/readme.md) for setup instructions and details.
 
 ## 🔖 Table of Contents
 
